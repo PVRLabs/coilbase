@@ -43,6 +43,16 @@ class RepositoryTest {
         assertThrows(IllegalArgumentException.class, () -> both.h2(""));
     }
 
+    @Test void contextWithoutDialectUsesDefaultAndConfiguredDialectFallsBack() {
+        var jdbi = fresh();
+        var statement = SqlStatement.of("SELECT 1").h2("SELECT 2");
+        var noDialect = new RepositoryContext(jdbi);
+        assertEquals("SELECT 1", noDialect.sql(statement));
+        assertEquals(1, noDialect.query(statement, q -> q.mapTo(Integer.class).one()).intValue());
+        assertEquals("SELECT 2", new RepositoryContext(jdbi, Dialects.H2).sql(statement));
+        assertEquals("SELECT 1", new RepositoryContext(jdbi, Dialects.POSTGRES).sql(statement));
+    }
+
     @Test void enumAndStringDialectsShareOverridesAndFallback() {
         var jdbi = fresh();
         for (var dialect : Dialects.values()) {

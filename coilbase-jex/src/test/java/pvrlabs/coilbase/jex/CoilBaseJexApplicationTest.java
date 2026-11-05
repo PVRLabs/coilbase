@@ -197,22 +197,26 @@ class CoilBaseJexApplicationTest {
         assertEquals(1, app.ds.closes.get());
     }
 
-    @Test void missingDialectFailsStartupAndClosesDatasource() {
+    @Test void missingDialectUsesDefaultSql() throws Exception {
         var ds = new CountingDataSource();
         var app = new CoilBaseJexApplication() {
             @Override protected DataSource createPrimaryDataSource() { return ds; }
-            @Override protected void registerRoutes(Jex jex) { fail("routes must not be registered"); }
+            @Override protected void registerRoutes(Jex jex) {
+                jex.get("/dialect", ctx -> ctx.text(db().sql(SqlStatement.of("default").h2("h2"))));
+                jex.get("/one", ctx -> ctx.text(db().query(SqlStatement.of("SELECT 1").h2("SELECT 2"),
+                        q -> q.mapTo(Integer.class).one()).toString()));
+            }
         };
-        assertThrows(IllegalStateException.class, () -> app.start(0));
-        assertEquals(1, ds.closes.get());
+        server = app.start(0);
+        assertEquals("default", send("GET", "/dialect", null).body());
+        assertEquals("1", send("GET", "/one", null).body());
     }
 
-    @Test void nullDialectFailsStartupAndClosesDatasource() {
-        var app = new TestApp() {
+    @Test void nullDialectUsesDefaultSql() throws Exception {
+        server = new TestApp() {
             @Override protected Dialects primaryDialect() { return null; }
-        };
-        assertThrows(IllegalStateException.class, () -> app.start(0));
-        assertEquals(1, app.ds.closes.get());
+        }.start(0);
+        assertEquals("default", send("GET", "/dialect", null).body());
     }
 
     @Test void explicitDialectStillSelectsSqlOverride() throws Exception {

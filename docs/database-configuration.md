@@ -6,10 +6,11 @@ provides a primary-datasource convention. Jex applications require Java 21+.
 
 ## Primary datasource with Jex
 
-Override `createPrimaryDataSource()` to return a configured `DataSource`, and
-`primaryDialect()` to return its SQL selection key, such as `Dialects.H2` or
-`Dialects.POSTGRES`. String dialect keys are trimmed and case-insensitive, but are
-otherwise exact: `postgres` matches `POSTGRES`, while `PostgreSQL` is a distinct
+Override `createPrimaryDataSource()` to return a configured `DataSource`. By default,
+statements use their default SQL. Optionally override `primaryDialect()` to select
+dialect-specific SQL, using a key such as `Dialects.H2` or `Dialects.POSTGRES`.
+When no override matches, the default SQL is used. String dialect keys are trimmed
+and case-insensitive, but are otherwise exact: `postgres` matches `POSTGRES`, while `PostgreSQL` is a distinct
 key, not an alias. Core's `RepositoryContext` API supports custom string keys;
 the Jex `primaryDialect()` hook accepts only `Dialects` enum values. The dialect
 is explicit; it does not select a driver, detect
@@ -22,6 +23,29 @@ through constructors. Do not call it from the constructor or datasource factory.
 By default the datasource is `null`; HTTP-only applications need no dialect,
 and calling `db()` without a datasource throws `IllegalStateException`.
 
+## SQL statements and dialect overrides
+
+No dialect is required: `new RepositoryContext(jdbi)` selects default SQL, and
+Jex applications need not override `primaryDialect()`. Define a statement with
+shared SQL and add an override only when database-specific syntax is needed:
+
+```java
+var recentGreetings = SqlStatement.of(
+    "SELECT id, message FROM greetings ORDER BY id FETCH FIRST 10 ROWS ONLY")
+    .postgres("SELECT id, message FROM greetings ORDER BY id LIMIT 10");
+```
+
+| Configuration | SQL selected |
+| --- | --- |
+| No dialect configured | Default SQL |
+| Dialect with a matching override | Override SQL |
+| Dialect without a matching override | Default SQL |
+
+Most SQL can remain shared across databases. Dialect selection is explicit:
+CoilBase does not detect the database or validate SQL compatibility. Core's
+`RepositoryContext` also accepts custom string dialect keys; the Jex
+`primaryDialect()` hook uses the `Dialects` enum.
+
 ## H2: no external database
 
 [Hello CoilBase](../examples/hello-coilbase) uses H2's built-in pool:
@@ -30,14 +54,11 @@ and calling `db()` without a datasource throws `IllegalStateException`.
 @Override protected DataSource createPrimaryDataSource() {
     return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
 }
-
-@Override protected Dialects primaryDialect() { return Dialects.H2; }
 ```
 
 These members belong in your `CoilBaseJexApplication` subclass. Import
-`org.h2.jdbcx.JdbcConnectionPool`, `javax.sql.DataSource` and
-`pvrlabs.coilbase.Dialects`; add `com.h2database:h2:2.5.250` as an application
-dependency. The pool is created during startup, with no constructor plumbing or
+`org.h2.jdbcx.JdbcConnectionPool` and `javax.sql.DataSource`; add
+`com.h2database:h2:2.5.250` as an application dependency. The pool is created during startup, with no constructor plumbing or
 application-level pool field.
 `DB_CLOSE_DELAY=-1` retains the named in-memory database between connections
 until JVM exit; a process restart loses its data. No Docker or external database
@@ -182,6 +203,9 @@ var reportingDb = new pvrlabs.coilbase.RepositoryContext(
     org.jdbi.v3.core.Jdbi.create(reportingDataSource),
     pvrlabs.coilbase.Dialects.POSTGRES);
 ```
+
+Omit the dialect argument to use default SQL:
+`new RepositoryContext(Jdbi.create(reportingDataSource))`.
 
 Pass `reportingDb` to reporting repositories and the primary `db()` to primary
 repositories. Register shutdown cleanup and handle startup failures for the extra

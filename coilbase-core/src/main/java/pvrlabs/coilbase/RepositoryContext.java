@@ -27,6 +27,18 @@ public final class RepositoryContext {
     private final RollbackAwareTransactions transactions;
 
     /**
+     * Creates a context that selects default SQL without a dialect.
+     * @throws IllegalArgumentException if the Jdbi transaction handler is unsupported
+     * @throws IllegalStateException if a managed handle is open on this thread
+     * @throws NullPointerException if jdbi is null
+     */
+    public RepositoryContext(Jdbi jdbi) {
+        this.jdbi = Objects.requireNonNull(jdbi, "jdbi");
+        this.dialect = null;
+        this.transactions = RollbackAwareTransactions.install(jdbi);
+    }
+
+    /**
      * Creates a context using an enum SQL selection key.
      * @throws IllegalArgumentException if the Jdbi transaction handler is unsupported
      * @throws IllegalStateException if a managed handle is open on this thread
@@ -65,7 +77,7 @@ public final class RepositoryContext {
     }
 
     public String sql(SqlStatement statement) {
-        return statement.sql(dialect);
+        return dialect == null ? statement.sql() : statement.sql(dialect);
     }
 
     /** Consume results inside the callback; the query closes before this method returns. */

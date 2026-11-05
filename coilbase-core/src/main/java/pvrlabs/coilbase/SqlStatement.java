@@ -47,6 +47,11 @@ public final class SqlStatement {
         return override(Dialects.POSTGRES, sql);
     }
 
+    /** Returns the default SQL without selecting a dialect override. */
+    public String sql() {
+        return defaultSql;
+    }
+
     public String sql(Dialects dialect) {
         return sql(Objects.requireNonNull(dialect, "dialect").name());
     }

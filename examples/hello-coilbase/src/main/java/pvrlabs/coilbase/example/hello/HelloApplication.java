@@ -3,7 +3,6 @@ package pvrlabs.coilbase.example.hello;
 import io.avaje.jex.Jex;
 import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcConnectionPool;
-import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.jex.CoilBaseJexApplication;
 
 /** Supplies H2, initializes its schema and explicitly wires the controller and its dependencies. */
@@ -11,7 +10,6 @@ public class HelloApplication extends CoilBaseJexApplication {
     @Override protected DataSource createPrimaryDataSource() {
         return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
     }
-    @Override protected Dialects primaryDialect() { return Dialects.H2; }
 
     @Override protected void registerRoutes(Jex jex) {
         db().executeScriptResource("/schema.sql");

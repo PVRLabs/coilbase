@@ -66,16 +66,18 @@ to stop. Data is intentionally lost when the process exits; restarting starts em
 ## 4. Follow the wiring
 
 [HelloApplication](../examples/hello-coilbase/src/main/java/pvrlabs/coilbase/example/hello/HelloApplication.java)
-provides the pool and its dialect together:
+provides the pool:
 
 ```java
 @Override protected DataSource createPrimaryDataSource() {
     return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
 }
-@Override protected Dialects primaryDialect() { return Dialects.H2; }
 ```
 
-The base creates a `RepositoryContext` with `Dialects.H2`. The application explicitly calls
+The base creates a `RepositoryContext` that selects default SQL. Override `primaryDialect()`
+when statements need dialect-specific SQL; see
+[SQL statements and dialect overrides](database-configuration.md#sql-statements-and-dialect-overrides).
+The application explicitly calls
 `db().executeScriptResource("/schema.sql")` to read
 [`src/main/resources/schema.sql`](../examples/hello-coilbase/src/main/resources/schema.sql)
 as UTF-8 and execute it through Jdbi before registering the controller adapter.

@@ -86,8 +86,7 @@ public abstract class CoilBaseJexApplication {
             if (dataSource != null) {
                 var jdbi = Jdbi.create(dataSource);
                 var dialect = primaryDialect();
-                if (dialect == null) throw new IllegalStateException("primaryDialect() must not return null when a datasource is supplied");
-                db = new RepositoryContext(jdbi, dialect);
+                db = dialect == null ? new RepositoryContext(jdbi) : new RepositoryContext(jdbi, dialect);
             }
             var jex = Jex.create().jsonService(jsonService());
             configureMonitoringIfEnabled(jex);
@@ -106,14 +105,12 @@ public abstract class CoilBaseJexApplication {
 
     /**
      * The primary datasource, which this class then owns and closes. The default is no datasource.
-     * Returning a non-null datasource requires overriding {@link #primaryDialect()}.
+     * Override {@link #primaryDialect()} only when dialect-specific SQL selection is needed.
      */
     protected DataSource createPrimaryDataSource() { return null; }
 
-    /** SQL dialect for the primary context; required when a datasource is supplied. */
-    protected Dialects primaryDialect() {
-        throw new IllegalStateException("Override primaryDialect() when createPrimaryDataSource() returns a datasource");
-    }
+    /** SQL selection key for the primary context; defaults to null, selecting default SQL. */
+    protected Dialects primaryDialect() { return null; }
 
     /** The primary repository context. Valid in {@link #registerRoutes(Jex)} and later. */
     protected final RepositoryContext db() {
