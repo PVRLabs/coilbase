@@ -42,15 +42,14 @@ Results depend on the application, runtime configuration and deployment. See the
 
 ## A small example
 
-Given an application-configured `DataSource dataSource`, Core keeps SQL and
-transaction boundaries explicit:
+Given an application-configured `DataSource` and an existing greetings table,
+Core keeps SQL and transaction boundaries explicit:
 
 ```java
 import org.jdbi.v3.core.Jdbi;
 import pvrlabs.coilbase.RepositoryContext;
 
 var db = new RepositoryContext(Jdbi.create(dataSource));
-db.useHandle(h -> h.execute("CREATE TABLE greetings(message VARCHAR(100))"));
 
 db.transactional(() -> {
     db.update("INSERT INTO greetings(message) VALUES (:message)", update -> update
