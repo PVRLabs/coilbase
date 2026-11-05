@@ -1,4 +1,4 @@
-![CoilBase logo](docs/assets/coilbase-monochrome.svg)
+<img src="docs/assets/coilbase-monochrome.svg" alt="CoilBase" width="550">
 
 **Spring-like comfort, without the weight.**
 
@@ -26,11 +26,19 @@ Native Jex routes remain available for custom endpoints.
 Experiments have used Avaje Jex, Javalin and Micronaut. Read about
 [framework integrations and portability](docs/framework-integrations.md).
 
-CoilBase is intended for small applications, new services and constrained VPS deployments.
-Resource efficiency is a design goal; actual memory,
-startup and throughput depend on the whole application and deployment. See the
-[exploratory runtime comparisons](docs/benchmarks.md) for recorded whole-application
-observations and their limitations.
+### Lightweight runtime
+
+CoilBase is designed for resource-constrained Java deployments. In exploratory
+experiments on 512 MiB local VMs, complete CoilBase applications had these median
+application RSS measurements across two workload runs:
+
+- **33–51 MiB** with Avaje Jex and GraalVM Native Image.
+- **58–59 MiB** with Javalin and GraalVM Native Image.
+- **116 MiB** with Avaje Jex on HotSpot JDK 27.
+
+These are workload medians, not framework overhead or guaranteed memory requirements.
+Results depend on the application, runtime configuration and deployment. See the
+[runtime comparisons](docs/benchmarks.md) for methodology, other frameworks and limitations.
 
 ## A small example
 
@@ -39,10 +47,9 @@ transaction boundaries explicit:
 
 ```java
 import org.jdbi.v3.core.Jdbi;
-import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.RepositoryContext;
 
-var db = new RepositoryContext(Jdbi.create(dataSource), Dialects.H2);
+var db = new RepositoryContext(Jdbi.create(dataSource));
 db.useHandle(h -> h.execute("CREATE TABLE greetings(message VARCHAR(100))"));
 
 db.transactional(() -> {
