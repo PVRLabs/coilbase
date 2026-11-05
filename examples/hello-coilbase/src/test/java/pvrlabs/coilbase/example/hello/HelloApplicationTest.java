@@ -1,5 +1,6 @@
 package pvrlabs.coilbase.example.hello;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.ServerSocket;
 import java.sql.SQLException;
@@ -41,6 +42,9 @@ class HelloApplicationTest {
         var server = app.start(0);
         try {
             var client = HttpClient.newHttpClient();
+            var metricsUrl = URI.create("http://127.0.0.1:" + server.port() + "/statlite/metrics");
+            assertEquals(404, client.send(HttpRequest.newBuilder(metricsUrl).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode());
             var url = URI.create("http://127.0.0.1:" + server.port() + "/greetings");
             var empty = client.send(HttpRequest.newBuilder(url).GET().build(), HttpResponse.BodyHandlers.ofString());
             assertEquals(200, empty.statusCode());
@@ -59,6 +63,46 @@ class HelloApplicationTest {
                 assertEquals("{\"error\":\"bad_request\"}", invalid.body(), input);
             }
             assertEquals(stored.body(), client.send(HttpRequest.newBuilder(url).GET().build(), HttpResponse.BodyHandlers.ofString()).body());
+        } finally {
+            server.shutdown();
+        }
+        assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+    }
+
+    @Test void optionalMonitoringCountsHelloRequestsWithoutCountingMetrics() throws Exception {
+        var app = new TestApplication();
+        // Monitoring is optional and explicitly enabled: new HelloApplication().enableMonitoring().
+        var server = app.enableMonitoring().start(0);
+        try {
+            var client = HttpClient.newHttpClient();
+            var base = "http://127.0.0.1:" + server.port();
+            var greetings = URI.create(base + "/greetings");
+            assertEquals(200, client.send(HttpRequest.newBuilder(greetings).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode());
+            assertEquals(400, client.send(HttpRequest.newBuilder(greetings).header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString("{\"name\":\" \"}")).build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode());
+            assertEquals(404, client.send(HttpRequest.newBuilder(URI.create(base + "/missing")).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).statusCode());
+
+            var request = HttpRequest.newBuilder(URI.create(base + "/statlite/metrics")).GET().build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            var body = new ObjectMapper().readTree(response.body());
+            assertEquals("statlite-metrics/v1", body.path("schema").asText());
+            assertEquals("UP", body.path("status").asText());
+            var metrics = body.path("metrics");
+            assertEquals(3, metrics.path("requests_total").asInt());
+            assertEquals(1, metrics.path("responses_404_total").asInt());
+            assertEquals(2, metrics.path("responses_4xx_total").asInt());
+            assertEquals(0, metrics.path("responses_5xx_total").asInt());
+            var repeated = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, repeated.statusCode());
+            var repeatedMetrics = new ObjectMapper().readTree(repeated.body()).path("metrics");
+            for (var name : new String[]{"requests_total", "responses_404_total", "responses_4xx_total",
+                    "responses_5xx_total", "request_duration_seconds_total"}) {
+                assertEquals(metrics.path(name), repeatedMetrics.path(name), name);
+            }
         } finally {
             server.shutdown();
         }

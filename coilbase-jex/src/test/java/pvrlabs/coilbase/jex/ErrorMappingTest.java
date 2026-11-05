@@ -3,6 +3,7 @@ package pvrlabs.coilbase.jex;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.avaje.jex.Jex;
+import io.avaje.jex.http.NotFoundException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -58,6 +59,25 @@ class ErrorMappingTest {
         }.start(0);
         assertResponse("/boom", 500, "internal_error");
         assertJsonFailure("{", "bad_request");
+    }
+
+    @Test void unmatchedRoutesUseDefaultOrExplicitMappingWithOrWithoutMonitoring() throws Exception {
+        for (boolean monitoring : new boolean[]{false, true}) {
+            for (boolean mapped : new boolean[]{false, true}) {
+                var app = new App() {
+                    @Override protected void configureErrorHandling() {
+                        if (mapped) mapError(NotFoundException.class, 410, "gone");
+                    }
+                };
+                if (monitoring) app.enableMonitoring();
+                server = app.start(0);
+                try {
+                    assertResponse("/unmatched", mapped ? 410 : 404, mapped ? "gone" : "not_found");
+                } finally {
+                    stop();
+                }
+            }
+        }
     }
 
     @Test void twoArgumentMappingsUseStandardClientCodes() throws Exception {

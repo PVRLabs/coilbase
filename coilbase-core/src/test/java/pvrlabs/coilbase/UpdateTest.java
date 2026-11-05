@@ -18,6 +18,27 @@ class UpdateTest {
     }
 
     @Test
+    void transactionalOverloadsSupportCommonCallSitesAndRollback() {
+        db.transactional(() -> db.executeScript("INSERT INTO entries VALUES (1, 10)"));
+        int inserted = db.transactional(() -> db.update("INSERT INTO entries VALUES (2, 20)",
+                update -> update.execute()));
+        assertEquals(1, inserted);
+        assertEquals(2, db.transactional(this::count));
+        db.transactional(() -> { db.executeScript("INSERT INTO entries VALUES (3, 30)"); });
+        assertEquals(3, db.transactional(() -> { return count(); }));
+
+        var failure = new IllegalStateException("rollback");
+        assertSame(failure, assertThrows(IllegalStateException.class, () -> db.transactional(() -> {
+            int nested = db.transactional(() -> db.update("INSERT INTO entries VALUES (4, 40)",
+                    update -> update.execute()));
+            assertEquals(1, nested);
+            throw failure;
+        })));
+        assertEquals(3, count());
+        assertThrows(NullPointerException.class, () -> db.transactional((java.util.function.Supplier<Object>) null));
+    }
+
+    @Test
     void crudReturnsAffectedRowsWithNamedBinding() {
         assertEquals(1, db.update("INSERT INTO entries VALUES (:id, :amount)",
                 update -> update.bind("id", 1).bind("amount", 10).execute()));

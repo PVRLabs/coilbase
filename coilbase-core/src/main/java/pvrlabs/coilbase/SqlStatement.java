@@ -5,7 +5,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-/** Immutable SQL text selection; execution and parameter contracts belong to Jdbi/callers. */
+/**
+ * Immutable SQL text selection; execution and parameter contracts belong to Jdbi and callers.
+ * Overrides return a new statement. Dialect keys are trimmed and case-insensitive; an unknown
+ * key selects the default SQL. Selection does not detect the database or validate its syntax.
+ * Enum dialect keys use their names (for example, {@code POSTGRES}); string keys match those
+ * names case-insensitively or can be application-defined. {@code postgres} and {@code PostgreSQL}
+ * are distinct keys; PostgreSQL is not an alias for postgres.
+ */
 public final class SqlStatement {
     private final String defaultSql;
     private final Map<String, String> overrides;

@@ -5,13 +5,22 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.jdbi.v3.core.HandleCallback;
 import org.jdbi.v3.core.HandleConsumer;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.statement.Query;
 import org.jdbi.v3.core.statement.Update;
 
-/** Compose this context into repositories. Share its Jdbi instance for transaction participation. */
+/**
+ * Compose this context into repositories. Within an active managed transaction, callbacks on the
+ * same thread and Jdbi instance share its handle and transaction; separate instances and threads
+ * do not propagate transactions.
+ * Nested transactions join the current transaction, without a savepoint or independent commit.
+ * Create contexts before opening managed handles. Construction installs a rollback-aware wrapper
+ * around Jdbi's default local transaction handler; custom transaction handlers are unsupported.
+ * The application owns the Jdbi instance and its datasource.
+ */
 public final class RepositoryContext {
     private final Jdbi jdbi;
     private final String dialect;
@@ -27,7 +36,13 @@ public final class RepositoryContext {
         this.transactions = RollbackAwareTransactions.install(jdbi);
     }
 
-    /** Marks the current managed transaction; its eventual commit throws RollbackOnlyException. */
+    /**
+     * Marks the current managed transaction; its eventual commit throws RollbackOnlyException.
+     * Use this when a failure is caught inside a transaction that must still roll back.
+     *
+     * @throws IllegalStateException if there is no active managed transaction on this thread,
+     *         or if the Jdbi transaction handler has changed
+     */
     public void markRollbackOnly() {
         if (jdbi.getTransactionHandler() != transactions) {
             throw new IllegalStateException("Jdbi transaction handler changed after context initialization");
@@ -123,6 +138,12 @@ public final class RepositoryContext {
     public void transactional(Runnable action) {
         Objects.requireNonNull(action, "action");
         useTransaction(ignored -> action.run());
+    }
+
+    /** Runs value-returning work in a managed transaction, joining an existing transaction. */
+    public <T> T transactional(Supplier<T> action) {
+        Objects.requireNonNull(action, "action");
+        return inTransaction(ignored -> action.get());
     }
 
     public <X extends Exception> void useTransaction(HandleConsumer<X> callback) throws X {

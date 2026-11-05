@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import io.avaje.jex.Jex;
 import io.avaje.jex.http.HttpStatus;
+import io.avaje.jex.http.NotFoundException;
 import io.avaje.jex.core.json.JacksonJsonService;
 import io.avaje.jex.spi.JsonService;
 import java.lang.reflect.InvocationTargetException;
@@ -44,6 +45,7 @@ public abstract class CoilBaseJexApplication {
     private static final System.Logger LOG = System.getLogger(CoilBaseJexApplication.class.getName());
     private static final ErrorResponse INTERNAL_ERROR = new ErrorResponse(500, "internal_error");
     private static final ErrorResponse BAD_REQUEST = new ErrorResponse(400, "bad_request");
+    private static final ErrorResponse NOT_FOUND = new ErrorResponse(404, "not_found");
     private final Map<Class<? extends Exception>, ErrorResponse> errorMappings = new HashMap<>();
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -95,7 +97,10 @@ public abstract class CoilBaseJexApplication {
         }
     }
 
-    /** The primary datasource, which this class then owns and closes. The default is no datasource. */
+    /**
+     * The primary datasource, which this class then owns and closes. The default is no datasource.
+     * Returning a non-null datasource requires overriding {@link #primaryDialect()}.
+     */
     protected DataSource createPrimaryDataSource() { return null; }
 
     /** SQL dialect for the primary context; required when a datasource is supplied. */
@@ -109,7 +114,7 @@ public abstract class CoilBaseJexApplication {
         return db;
     }
 
-    /** Register routes and controllers; build services from {@link #db()} here. */
+    /** Register routes and controllers; when a primary datasource is configured, build services from {@link #db()} here. */
     protected abstract void registerRoutes(Jex jex);
 
     /** Default: ISO-8601 dates, including Java time support via the bundled jackson-datatype-jsr310 dependency. */
@@ -186,6 +191,7 @@ public abstract class CoilBaseJexApplication {
                 if (response != null) return response;
             }
         }
+        if (failure instanceof NotFoundException) return NOT_FOUND;
         return JexErrors.statusOf(failure, ignored -> 500) == 400 ? BAD_REQUEST : INTERNAL_ERROR;
     }
 

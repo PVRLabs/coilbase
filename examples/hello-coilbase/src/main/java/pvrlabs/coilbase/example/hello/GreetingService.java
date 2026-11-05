@@ -16,9 +16,9 @@ public final class GreetingService {
 
     public Greeting greet(String name) {
         if (name == null || name.isBlank() || name.strip().length() > 80) {
-            throw new InvalidName();
+            throw new InvalidNameException();
         }
-        return db.inTransaction(handle -> {
+        return db.transactional(() -> {
             var greeting = new Greeting(UUID.randomUUID().toString(), "Hello, " + name.strip() + "!");
             greetings.insert(greeting);
             return greeting;
@@ -28,5 +28,5 @@ public final class GreetingService {
     public List<Greeting> findAll() { return greetings.findAll(); }
 
     /** Signals invalid input, mapped by the application to a 400 JSON response. */
-    public static final class InvalidName extends RuntimeException {}
+    public static final class InvalidNameException extends RuntimeException {}
 }

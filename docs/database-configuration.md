@@ -8,7 +8,11 @@ provides a primary-datasource convention. Jex applications require Java 21+.
 
 Override `createPrimaryDataSource()` to return a configured `DataSource`, and
 `primaryDialect()` to return its SQL selection key, such as `Dialects.H2` or
-`Dialects.POSTGRES`. The dialect is explicit; it does not select a driver, detect
+`Dialects.POSTGRES`. String dialect keys are trimmed and case-insensitive, but are
+otherwise exact: `postgres` matches `POSTGRES`, while `PostgreSQL` is a distinct
+key, not an alias. Core's `RepositoryContext` API supports custom string keys;
+the Jex `primaryDialect()` hook accepts only `Dialects` enum values. The dialect
+is explicit; it does not select a driver, detect
 the database or rewrite SQL.
 
 During `start()`, `CoilBaseJexApplication` creates a Jdbi instance and a
@@ -115,7 +119,7 @@ public final class PostgresApplication extends CoilBaseJexApplication {
 This small native route demonstrates database access; wire annotated controllers
 as in Hello CoilBase for application endpoints. Four connections are a starting
 pool bound, not a universal production setting. See
-[Hikari configuration](https://github.com/brettwooldridge/HikariCP#configuration-knobs-baby)
+[Hikari configuration](https://github.com/brettwooldridge/HikariCP#gear-configuration-knobs-baby)
 and [pgJDBC connection options](https://jdbc.postgresql.org/documentation/use/)
 for deployment-specific pool sizing, TLS and timeouts. No explicit driver-class
 loading is needed with the driver on the runtime classpath.

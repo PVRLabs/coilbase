@@ -112,7 +112,7 @@ configuration hook. Hello CoilBase only needs to map its own validation exceptio
 
 ```java
 @Override protected void configureErrorHandling() {
-    mapError(GreetingService.InvalidName.class, 400);
+    mapError(GreetingService.InvalidNameException.class, 400);
 }
 ```
 
@@ -147,9 +147,10 @@ a missing resource raises a clear `IllegalArgumentException`. These methods are
 also useful for seed data or other explicit scripts, not just schema setup.
 
 [GreetingService](../examples/hello-coilbase/src/main/java/pvrlabs/coilbase/example/hello/GreetingService.java)
-validates a name, then inserts a greeting inside `db.inTransaction`. The repository
+validates a name, then inserts a greeting inside `db.transactional`. The repository
 uses that same managed transaction because it shares the context's Jdbi instance
-and thread. `inTransaction` returns a value; use `transactional` for void work.
+and thread. `transactional` supports both value-returning and void work; use
+`inTransaction` when the callback needs a native Jdbi handle.
 Escaping exceptions roll back; caught failures need explicit `markRollbackOnly()`
 when commit must be prevented. Transactions do not propagate to another thread.
 The example tests also verify rollback when an enclosing service operation fails.

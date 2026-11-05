@@ -114,7 +114,7 @@ regular transitive dependencies, including Java time support for default ISO-860
   see [Database Configuration](docs/database-configuration.md) for ownership details.
 - **Errors:** the Jex base installs safe JSON error handling before calling
   `configureErrorHandling()`. Register typed mappings such as
-  `mapError(InvalidName.class, 400)`; specific types take
+  `mapError(InvalidNameException.class, 400)`; specific types take
   precedence over mapped superclasses. See [Getting Started](docs/getting-started.md).
 - **SQL:** `SqlStatement` selects immutable overrides by configured dialect; it does
   not detect databases or rewrite SQL. A dialect name is not a compatibility guarantee.

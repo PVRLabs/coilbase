@@ -22,7 +22,7 @@ public class HelloApplication extends CoilBaseJexApplication {
     }
 
     @Override protected void configureErrorHandling() {
-        mapError(GreetingService.InvalidName.class, 400);
+        mapError(GreetingService.InvalidNameException.class, 400);
     }
 
     public static void main(String[] args) {

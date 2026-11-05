@@ -9,6 +9,10 @@ import org.jdbi.v3.core.Jdbi;
  * Optional helper; applications control probe scheduling and may use their existing monitoring integration.
  */
 public record DatabaseHealth(boolean healthy, long elapsedMillis, Instant checkedAt) {
+    /**
+     * Opens an independent handle without joining business transactions and runs {@code SELECT 1}.
+     * Runtime failures are reported as unhealthy. The query is not portable to every database dialect.
+     */
     public static DatabaseHealth check(Jdbi jdbi, int queryTimeoutSeconds) {
         Objects.requireNonNull(jdbi, "jdbi");
         if (queryTimeoutSeconds < 1) throw new IllegalArgumentException("timeout must be positive");

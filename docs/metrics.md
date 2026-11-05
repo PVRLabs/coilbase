@@ -30,10 +30,9 @@ class Application extends CoilBaseJexApplication {
 Monitoring is disabled by default. Enabling it creates one helper and registers
 `GET /statlite/metrics`, using the application's JSON service. It reports `UP`
 as a fixed application status, not a readiness or database check. Normal error
-handlers and mappings remain in effect. In particular, if your application wants
-unmatched Jex routes to return 404, configure its existing error handling to map
-`NotFoundException` to 404; the default catch-all can return 500. Monitoring
-records the actual response status, whichever mapping the application chooses.
+handlers and mappings remain in effect. Unmatched routes return 404 by default;
+applications can override this with their own error mappings. Monitoring records
+the actual response status, whichever mapping the application chooses.
 
 Jex 3.6 bypasses filters for unmatched routes. Monitoring delegates those errors
 to the handler Jex would otherwise select and counts the response with zero
