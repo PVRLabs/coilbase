@@ -69,6 +69,7 @@ H2 is included in the example; no Docker or external database is needed.
 Add the PVR Labs Maven repository to your project's `pom.xml`:
 
 ```xml
+<!-- PVR Labs Maven repository for CoilBase releases: https://github.com/PVRLabs/maven-repo -->
 <repositories>
   <repository>
     <id>pvrlabs</id>
