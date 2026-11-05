@@ -9,25 +9,20 @@ The [complete example](../examples/hello-coilbase) uses Core for persistence and
 the optional Jex module for HTTP and JSON. This HTTP example requires JDK 21+
 and Maven; Core alone supports Java 17+.
 
-## 1. Build CoilBase locally
+## 1. Build and run the example
 
 From the root of your CoilBase checkout:
-
-```sh
-mvn clean install
-```
-
-Artifacts are not published yet. This installs the parent POM and both library
-modules locally, under Maven group `xyz.pvrlabs`, version `0.1.0-preview1`.
-
-## 2. Build and run the example
-
-From the same root:
 
 ```sh
 mvn -f examples/hello-coilbase/pom.xml clean verify
 java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview1.jar
 ```
+
+The example POM configures `https://pvrlabs.github.io/maven/` and resolves
+`xyz.pvrlabs:coilbase-core:0.1.0-preview1` and
+`xyz.pvrlabs:coilbase-jex:0.1.0-preview1` from the public repository. It does
+not require a locally installed CoilBase build. For your own project, see the
+[repository configuration and dependencies](../README.md#installation).
 
 The example POM configures `avaje-http-jex-generator` on Maven's annotation
 processor path, with processing explicitly enabled for JDK 21 and newer. It generates
@@ -39,7 +34,7 @@ The build copies runtime dependencies into `target/lib/`, referenced by the JAR
 manifest. Keep that directory beside the JAR. The server starts on port 8080;
 set `PORT=8081` before the Java command to change it.
 
-## 3. Call the API
+## 2. Call the API
 
 In another terminal:
 
@@ -63,7 +58,7 @@ Blank, missing or over-80-character names return 400. Malformed JSON also return
 400; unexpected failures use the Jex helper's sanitized 500 response. Press Ctrl-C
 to stop. Data is intentionally lost when the process exits; restarting starts empty.
 
-## 4. Follow the wiring
+## 3. Follow the wiring
 
 [HelloApplication](../examples/hello-coilbase/src/main/java/pvrlabs/coilbase/example/hello/HelloApplication.java)
 provides the pool:
@@ -157,7 +152,7 @@ The base owns the returned pool and disposes it on shutdown or startup failure;
 see [datasource ownership](database-configuration.md#ownership-and-shutdown).
 `DB_CLOSE_DELAY=-1` keeps the in-memory database alive between connections until JVM exit.
 
-## 5. Adapt it
+## 4. Adapt it
 
 The [example POM](../examples/hello-coilbase/pom.xml) declares
 `xyz.pvrlabs:coilbase-core`, `xyz.pvrlabs:coilbase-jex`, H2 and Avaje HTTP's

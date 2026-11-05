@@ -7,10 +7,10 @@ database is needed.
 **[Follow the complete Getting Started walkthrough](../../docs/getting-started.md)**
 for API calls, wiring, transactions and configuration.
 
-From the repository root, build the unpublished libraries and run the example:
+From the repository root, build and run the example. Its POM resolves CoilBase
+from the public PVR Labs Maven repository:
 
 ```sh
-mvn clean install
 mvn -f examples/hello-coilbase/pom.xml clean verify
 java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview1.jar
 ```

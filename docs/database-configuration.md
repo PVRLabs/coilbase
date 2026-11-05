@@ -80,8 +80,9 @@ is required. See [Getting Started](getting-started.md) for build and run command
 ## PostgreSQL with HikariCP
 
 For a production-oriented PostgreSQL application, supply a Hikari datasource.
-These application dependencies include Core transitively through `coilbase-jex`;
-install CoilBase locally first, as described in [Getting Started](getting-started.md).
+These application dependencies include Core transitively through `coilbase-jex`.
+Configure the public PVR Labs Maven repository as shown in
+[Installation](../README.md#installation).
 
 ```xml
 <dependencies>

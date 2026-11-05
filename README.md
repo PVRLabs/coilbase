@@ -66,14 +66,18 @@ H2 is included in the example; no Docker or external database is needed.
 
 ## Installation
 
-Experimental; no Maven artifacts are published yet. Build and install this checkout
-locally with JDK 21+ and Maven:
+Add the PVR Labs Maven repository to your project's `pom.xml`:
 
-```sh
-mvn clean install
+```xml
+<repositories>
+  <repository>
+    <id>pvrlabs</id>
+    <url>https://pvrlabs.github.io/maven/</url>
+  </repository>
+</repositories>
 ```
 
-Then add the module you need:
+Then add Core (Java 17+) to your dependencies:
 
 ```xml
 <dependency>
@@ -83,7 +87,8 @@ Then add the module you need:
 </dependency>
 ```
 
-Choose `coilbase-jex` instead for the optional Jex integration; it includes Core.
+For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview1`
+instead; it includes Core. This is a preview, and APIs may change.
 Applications supply their own JDBC driver, datasource or pool, and row mappers.
 See [Database Configuration](docs/database-configuration.md) for H2, PostgreSQL
 with HikariCP, schema scripts and datasource ownership.
