@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS greetings (
+    id VARCHAR(36) PRIMARY KEY,
+    message VARCHAR(100) NOT NULL
+);
