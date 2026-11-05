@@ -118,7 +118,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.avaje.jex.Jex;
 import javax.sql.DataSource;
-import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.jex.CoilBaseJexApplication;
 
 public final class PostgresApplication extends CoilBaseJexApplication {
@@ -132,8 +131,6 @@ public final class PostgresApplication extends CoilBaseJexApplication {
         config.setMaximumPoolSize(4);
         return new HikariDataSource(config);
     }
-
-    @Override protected Dialects primaryDialect() { return Dialects.POSTGRES; }
 
     @Override protected void registerRoutes(Jex jex) {
         jex.get("/database", ctx -> {
