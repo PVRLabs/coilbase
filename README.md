@@ -9,25 +9,25 @@ familiar repository and service organization, explicit transaction boundaries,
 and constructor wiring to applications that do not need a large framework runtime.
 You keep SQL, business logic and resource ownership visible.
 
-Think of it as a small Linux distribution for Java application development:
-curate established libraries, add useful conventions and integration, and keep
-the underlying tools accessible. The application structure should feel familiar
-to Spring Boot developers: repositories for data access, services for business
-logic, and MVC-style controller → service → repository organization. Wiring and
-transaction boundaries are explicit, and controllers and routes use the HTTP
-framework's native APIs.
+The application structure is familiar to Spring Boot developers: repositories
+for data access, services for business logic, and MVC-style controller → service →
+repository organization. Controllers and routes use the HTTP framework's native APIs.
 
 Jdbi handles persistence; CoilBase adds repository conveniences, SQL dialect
-overrides and explicit rollback-only marking. Optional Avaje Jex integration
+overrides and explicit rollback-only marking. Core is independent of HTTP frameworks
+and DI containers, so repositories, services, SQL and business logic can be reused
+across hosts with adaptation at the framework boundary. Optional Avaje Jex integration
 supplies HTTP startup, JSON and error-handling conveniences without hiding native
-Jex APIs. For Jex applications, the recommended starting point is annotated
+Jex APIs. Jex is the recommended starting point because its integration is straightforward;
+for Jex applications, start with annotated
 Avaje HTTP controllers with generated routing adapters registered explicitly.
 Native Jex routes remain available for custom endpoints.
 
-It is intended for small applications, new services and constrained VPS deployments,
-and for suitable Spring Boot rewrites where explicit SQL and wiring fit the
-application. Rewrites require deliberate changes to configuration, controllers and
-framework-dependent features. Resource efficiency is a design goal; actual memory,
+Experiments have used Avaje Jex, Javalin and Micronaut. Read about
+[framework integrations and portability](docs/framework-integrations.md).
+
+CoilBase is intended for small applications, new services and constrained VPS deployments.
+Resource efficiency is a design goal; actual memory,
 startup and throughput depend on the whole application and deployment. See the
 [exploratory runtime comparisons](docs/benchmarks.md) for recorded whole-application
 observations and their limitations.
@@ -84,9 +84,8 @@ with HikariCP, schema scripts and datasource ownership.
 
 ## Monitoring (work in progress)
 
-CoilBase offers opt-in, lightweight StatLite Metrics support for basic application
-and JVM metrics. Jex applications can enable it explicitly; other applications
-can use the framework-independent helper. See [StatLite monitoring](docs/statlite-monitoring.md).
+Optional [StatLite monitoring](docs/statlite-monitoring.md) provides basic
+application and JVM metrics for CoilBase applications.
 
 ## Modules
 
@@ -126,14 +125,14 @@ regular transitive dependencies, including Java time support for default ISO-860
   these examples are excluded from library binary and source JARs. Run `mvn clean verify` for the H2-backed
   persistence tests and Jex HTTP tests; these do not certify every database dialect.
 
-CoilBase has a deliberately narrow scope: it is not a feature-complete Spring Boot
-replacement, a DI container, an ORM, or an abstraction over every Java HTTP framework.
-There is no Spring API compatibility or automatic migration. Services and repositories
+CoilBase has a deliberately narrow scope: it is not a DI container, an ORM,
+or an abstraction over every Java HTTP framework. There is no automatic migration.
+Services and repositories
 can remain independent of the HTTP host; routes, controllers and bootstrap use that
 host's native APIs. Plain Jdbi remains a good choice when these conventions add no value.
 
 For standalone consumer and parent-POM resolution checks, see
-[consumer verification](verification/README.md). Any future deployment must include
-the complete reactor: the parent POM and both library modules.
+[consumer verification](verification/README.md). Maven distribution includes the
+parent POM and both modules; applications depend only on the modules they need.
 
 Licensed under [Apache-2.0](LICENSE). Dependencies retain their respective licenses.

@@ -12,7 +12,7 @@ behavior may change in later releases.
   synchronous and scoped to one datasource; distributed transactions and
   automatic migrations are not supported.
 - Jex monitoring counts unmatched routes with zero duration because Jex 3.6
-  bypasses request filters for them. See [metrics](docs/metrics.md) for this
+  bypasses request filters for them. See [StatLite monitoring](docs/statlite-monitoring.md) for this
   and other limitations.
 
 This candidate has not yet been published. Release artifacts are intended for
