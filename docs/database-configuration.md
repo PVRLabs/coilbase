@@ -6,28 +6,26 @@ provides a primary-datasource convention. Jex applications require Java 21+.
 
 ## Primary datasource with Jex
 
-Override `createPrimaryDataSource()` to return a configured `DataSource`. By default,
-statements use their default SQL. Optionally override `primaryDialect()` to select
-dialect-specific SQL, using a key such as `Dialects.H2` or `Dialects.POSTGRES`.
-When no override matches, the default SQL is used. String dialect keys are trimmed
-and case-insensitive, but are otherwise exact: `postgres` matches `POSTGRES`, while `PostgreSQL` is a distinct
-key, not an alias. Core's `RepositoryContext` API supports custom string keys;
-the Jex `primaryDialect()` hook accepts only `Dialects` enum values. The dialect
-is explicit; it does not select a driver, detect
-the database or rewrite SQL.
+Override `createPrimaryDataSource()` to provide a configured `DataSource`.
+During startup, CoilBase creates a Jdbi instance and a `RepositoryContext` for
+that datasource.
 
-During `start()`, `CoilBaseJexApplication` creates a Jdbi instance and a
-`RepositoryContext` for that datasource. Its protected `db()` accessor is available
-in `registerRoutes(Jex)` and afterward: pass it into repositories and services
-through constructors. Do not call it from the constructor or datasource factory.
-By default the datasource is `null`; HTTP-only applications need no dialect,
-and calling `db()` without a datasource throws `IllegalStateException`.
+The protected `db()` accessor is available in `registerRoutes(Jex)` and afterward.
+Pass it into repositories and services through constructors. Do not call it from
+the application constructor or datasource factory.
 
-## SQL statements and dialect overrides
+By default, no datasource is configured. HTTP-only applications can run without
+one, and calling `db()` without a datasource throws `IllegalStateException`.
+SQL dialect configuration is optional and is explained below.
 
-No dialect is required: `new RepositoryContext(jdbi)` selects default SQL, and
-Jex applications need not override `primaryDialect()`. Define a statement with
-shared SQL and add an override only when database-specific syntax is needed:
+## Supporting multiple databases with SQL dialects
+
+CoilBase makes it easier to switch between database engines or support several
+of them while retaining the same repositories and business logic. The datasource
+chooses which database to connect to; the dialect selects which SQL variant to use.
+
+Much SQL can be shared across databases and needs no special configuration. When
+syntax differs, define a default statement and database-specific overrides:
 
 ```java
 var recentGreetings = SqlStatement.of(
@@ -35,16 +33,31 @@ var recentGreetings = SqlStatement.of(
     .postgres("SELECT id, message FROM greetings ORDER BY id LIMIT 10");
 ```
 
+Configure the SQL dialect once for the repository context:
+
+```java
+var db = new RepositoryContext(jdbi, Dialects.POSTGRES);
+```
+
+In a Jex application, optionally override `primaryDialect()` to return
+`Dialects.POSTGRES`. The context selects SQL when a repository executes the
+statement through its `query` or `update` methods:
+
 | Configuration | SQL selected |
 | --- | --- |
 | No dialect configured | Default SQL |
-| Dialect with a matching override | Override SQL |
-| Dialect without a matching override | Default SQL |
+| PostgreSQL configured | PostgreSQL override, if present; otherwise default SQL |
+| Another dialect without an override | Default SQL |
 
-Most SQL can remain shared across databases. Dialect selection is explicit:
-CoilBase does not detect the database or validate SQL compatibility. Core's
-`RepositoryContext` also accepts custom string dialect keys; the Jex
-`primaryDialect()` hook uses the `Dialects` enum.
+Applications using only default SQL need no dialect configuration: use
+`new RepositoryContext(jdbi)` or leave the Jex `primaryDialect()` hook unchanged.
+
+The datasource and JDBC driver remain application-controlled. CoilBase does not
+automatically switch connections, detect database engines, translate SQL, or
+guarantee SQL compatibility. Custom string dialect keys are also supported through
+`RepositoryContext`; the Jex `primaryDialect()` hook uses the `Dialects` enum.
+String keys are trimmed and case-insensitive, but otherwise exact: `postgres`
+matches `POSTGRES`, while `PostgreSQL` is a distinct key.
 
 ## H2: no external database
 

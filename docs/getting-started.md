@@ -76,7 +76,7 @@ provides the pool:
 
 The base creates a `RepositoryContext` that selects default SQL. Override `primaryDialect()`
 when statements need dialect-specific SQL; see
-[SQL statements and dialect overrides](database-configuration.md#sql-statements-and-dialect-overrides).
+[Supporting multiple databases with SQL dialects](database-configuration.md#supporting-multiple-databases-with-sql-dialects).
 The application explicitly calls
 `db().executeScriptResource("/schema.sql")` to read
 [`src/main/resources/schema.sql`](../examples/hello-coilbase/src/main/resources/schema.sql)
