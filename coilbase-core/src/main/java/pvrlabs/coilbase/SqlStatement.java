@@ -12,6 +12,9 @@ import java.util.Objects;
  * Enum dialect keys use their names (for example, {@code POSTGRES}); string keys match those
  * names case-insensitively or can be application-defined. {@code postgres} and {@code PostgreSQL}
  * are distinct keys; PostgreSQL is not an alias for postgres.
+ * SQL text and dialect keys must be non-null and non-blank: null causes
+ * {@link NullPointerException}, and blank text or keys cause {@link IllegalArgumentException}.
+ * An override for an existing key replaces that key in the returned statement.
  */
 public final class SqlStatement {
     private final String defaultSql;

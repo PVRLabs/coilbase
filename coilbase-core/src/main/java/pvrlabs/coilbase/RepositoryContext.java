@@ -26,10 +26,22 @@ public final class RepositoryContext {
     private final String dialect;
     private final RollbackAwareTransactions transactions;
 
+    /**
+     * Creates a context using an enum SQL selection key.
+     * @throws IllegalArgumentException if the Jdbi transaction handler is unsupported
+     * @throws IllegalStateException if a managed handle is open on this thread
+     * @throws NullPointerException if an argument is null
+     */
     public RepositoryContext(Jdbi jdbi, Dialects dialect) {
         this(jdbi, Objects.requireNonNull(dialect, "dialect").name());
     }
 
+    /**
+     * Creates a context using a trimmed, case-insensitive SQL selection key.
+     * @throws IllegalArgumentException if the dialect is blank or the transaction handler is unsupported
+     * @throws IllegalStateException if a managed handle is open on this thread
+     * @throws NullPointerException if an argument is null
+     */
     public RepositoryContext(Jdbi jdbi, String dialect) {
         this.jdbi = Objects.requireNonNull(jdbi, "jdbi");
         this.dialect = SqlStatement.dialectKey(dialect);
@@ -69,7 +81,11 @@ public final class RepositoryContext {
         return query(sql(statement), callback);
     }
 
-    /** Bind and execute inside the callback; returns its affected-row count without adding a transaction. */
+    /**
+     * Bind and execute inside the callback; returns the callback's integer result without adding a
+     * transaction. The callback must execute the update and return its affected-row count if that
+     * is desired. The update closes before this method returns; a null result cannot be unboxed.
+     */
     public int update(String sql, Function<Update, Integer> callback) {
         return jdbi.withHandle(handle -> {
             try (var update = handle.createUpdate(sql)) {
@@ -118,14 +134,24 @@ public final class RepositoryContext {
         executeScript(sql);
     }
 
+    /**
+     * Delegates to Jdbi's managed handle callback. Consume handle-backed results inside the callback;
+     * do not close or retain the managed handle. Callback exceptions propagate according to Jdbi.
+     */
     public <T, X extends Exception> T withHandle(HandleCallback<T, X> callback) throws X {
         return jdbi.withHandle(callback);
     }
 
+    /** Void form of {@link #withHandle(HandleCallback)}, with the same handle lifetime. */
     public <X extends Exception> void useHandle(HandleConsumer<X> callback) throws X {
         jdbi.useHandle(callback);
     }
 
+    /**
+     * Runs a managed transaction or joins the current one. The handle is scoped to the callback;
+     * callback exceptions and transaction failures propagate according to Jdbi. A rollback-only
+     * transaction throws {@link RollbackOnlyException} when its outermost commit is attempted.
+     */
     public <T, X extends Exception> T inTransaction(HandleCallback<T, X> callback) throws X {
         return jdbi.inTransaction(callback);
     }
@@ -146,6 +172,7 @@ public final class RepositoryContext {
         return inTransaction(ignored -> action.get());
     }
 
+    /** Void form of {@link #inTransaction(HandleCallback)}, with the same transaction rules. */
     public <X extends Exception> void useTransaction(HandleConsumer<X> callback) throws X {
         jdbi.useTransaction(callback);
     }

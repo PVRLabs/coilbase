@@ -65,13 +65,20 @@ public abstract class CoilBaseJexApplication {
         return startWithDefaultPort(8080);
     }
 
-    /** Uses {@code PORT} when set, otherwise the supplied default. Call once. */
+    /**
+     * Uses {@code PORT} when set and nonblank, otherwise the supplied default. Call once.
+     * An invalid {@code PORT} throws {@link NumberFormatException} before startup is attempted.
+     */
     public final Jex.Server startWithDefaultPort(int defaultPort) {
         String value = System.getenv("PORT");
         return start(value == null || value.isBlank() ? defaultPort : Integer.parseInt(value));
     }
 
-    /** Builds and runs the application on the supplied port. Call once. */
+    /**
+     * Builds and runs the application on the supplied port. Call once, including after a startup
+     * failure. Startup failures are rethrown; any cleanup failure is suppressed on the original.
+     * @throws IllegalStateException if startup was already attempted
+     */
     public final Jex.Server start(int port) {
         if (!started.compareAndSet(false, true)) throw new IllegalStateException("Application already started");
         try {
@@ -144,6 +151,7 @@ public abstract class CoilBaseJexApplication {
     /**
      * Advanced hook for native Jex handlers; the safe default is already installed.
      * By default delegates to {@link #configureErrorHandling()}.
+     * An override must call {@code super.configureErrorHandling(jex)} to invoke the no-argument hook.
      */
     protected void configureErrorHandling(Jex jex) { configureErrorHandling(); }
 
@@ -156,6 +164,8 @@ public abstract class CoilBaseJexApplication {
      * Registers an exception's status and JSON {"error": code} response during startup configuration.
      * The nearest mapped superclass wins, independent of registration order. If the thrown exception
      * has no mapping, its causes are checked in order. Registering the same type again replaces it.
+     * @throws NullPointerException if type or code is null
+     * @throws IllegalArgumentException if status is outside 400 through 599 or code is blank
      */
     protected final void mapError(Class<? extends Exception> type, int status, String code) {
         Objects.requireNonNull(type, "type");

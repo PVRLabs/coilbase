@@ -12,6 +12,9 @@ public record DatabaseHealth(boolean healthy, long elapsedMillis, Instant checke
     /**
      * Opens an independent handle without joining business transactions and runs {@code SELECT 1}.
      * Runtime failures are reported as unhealthy. The query is not portable to every database dialect.
+     * The timeout applies to the query, not necessarily to acquiring a connection.
+     * @throws NullPointerException if jdbi is null
+     * @throws IllegalArgumentException if queryTimeoutSeconds is less than one
      */
     public static DatabaseHealth check(Jdbi jdbi, int queryTimeoutSeconds) {
         Objects.requireNonNull(jdbi, "jdbi");
