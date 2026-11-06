@@ -11,7 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-class MonitoringTest {
+class MonitoringIT {
     static class Bad extends RuntimeException {}
     static class App extends CoilBaseJexApplication {
         @Override protected void configureErrorHandling() {
@@ -69,6 +69,11 @@ class MonitoringTest {
         assertEquals(1, metrics.path("responses_5xx_total").asInt());
         assertTrue(metrics.path("request_duration_seconds_total").asDouble() >= 0.015);
         assertFalse(body.has("database_status"));
+        var repeated = mapper.readTree(get("/statlite/metrics").body()).path("metrics");
+        for (var name : new String[]{"requests_total", "responses_404_total", "responses_4xx_total",
+                "responses_5xx_total", "request_duration_seconds_total"}) {
+            assertEquals(metrics.path(name), repeated.path(name), name);
+        }
         var post = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.port() + "/statlite/metrics"))
                 .POST(HttpRequest.BodyPublishers.noBody()).build();
         assertEquals(404, client.send(post, HttpResponse.BodyHandlers.ofString()).statusCode());

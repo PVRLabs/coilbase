@@ -23,7 +23,7 @@ import org.junit.jupiter.api.*;
 import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.SqlStatement;
 
-class CoilBaseJexApplicationTest {
+class CoilBaseJexApplicationIT {
     record Input(String name) {}
     record Stamp(Instant at) {}
     static final class Missing extends RuntimeException {}
@@ -32,7 +32,7 @@ class CoilBaseJexApplicationTest {
     static final class CountingDataSource implements DataSource, AutoCloseable {
         final JdbcDataSource delegate = new JdbcDataSource();
         final AtomicInteger closes = new AtomicInteger();
-        CountingDataSource() { delegate.setURL("jdbc:h2:mem:" + System.nanoTime() + ";DB_CLOSE_DELAY=-1"); }
+        CountingDataSource(String name) { delegate.setURL("jdbc:h2:mem:" + name + "_" + System.currentTimeMillis() + ";DB_CLOSE_DELAY=-1"); }
         Throwable closeFailure;
         public void close() throws Exception {
             closes.incrementAndGet();
@@ -52,7 +52,8 @@ class CoilBaseJexApplicationTest {
 
     /** Test application: ephemeral port, H2, a few routes. Hooks are overridden per test via the fields. */
     static class TestApp extends CoilBaseJexApplication {
-        final CountingDataSource ds = new CountingDataSource();
+        final CountingDataSource ds;
+        TestApp(String name) { ds = new CountingDataSource(name); }
         boolean withDataSource = true;
         RuntimeException routesFailure;
         @Override protected DataSource createPrimaryDataSource() { return withDataSource ? ds : null; }
@@ -64,11 +65,19 @@ class CoilBaseJexApplicationTest {
             jex.get("/missing", ctx -> { throw new Missing(); });
             jex.get("/boom", ctx -> { throw new IllegalStateException("secret detail"); });
             jex.get("/dialect", ctx -> ctx.text(db().sql(SqlStatement.of("default").h2("h2"))));
-            if (withDataSource) jex.get("/one", ctx -> {
-                Integer one = db().query("SELECT 1", q -> q.mapTo(Integer.class).one());
-                ctx.text(one.toString());
-            });
+            if (withDataSource) {
+                db().executeScript("CREATE TABLE initialized(id INT); INSERT INTO initialized VALUES (1)");
+                jex.get("/one", ctx -> ctx.text(db().query("SELECT id FROM initialized",
+                        q -> q.mapTo(Integer.class).one()).toString()));
+                jex.get("/database-failure", ctx -> db().query("SELECT * FROM absent_table",
+                        q -> q.mapTo(Integer.class).list()));
+            }
         }
+    }
+
+    String databaseName;
+    @BeforeEach void nameDatabase(TestInfo test) {
+        databaseName = "CoilBaseJexApplicationIT_" + test.getTestMethod().orElseThrow().getName();
     }
 
     final HttpClient client = HttpClient.newHttpClient();
@@ -85,7 +94,7 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void startsServesQueriesThroughContextAndClosesDataSourceOnShutdown() throws Exception {
-        var app = new TestApp();
+        var app = new TestApp(databaseName);
         server = app.start(0);
         assertEquals("1", send("GET", "/one", null).body());
         assertEquals(0, app.ds.closes.get());
@@ -98,7 +107,7 @@ class CoilBaseJexApplicationTest {
     @Test void autoCloseableCleanupFailurePreservesStartupFailureAndExceptionHandling() {
         for (var cleanupFailure : new Throwable[]{new SQLException("checked close"),
                 new IllegalStateException("runtime close"), new AssertionError("error close")}) {
-            var app = new TestApp();
+            var app = new TestApp(databaseName);
             app.routesFailure = new IllegalArgumentException("startup failed");
             app.ds.closeFailure = cleanupFailure;
             var original = assertThrows(IllegalArgumentException.class, () -> app.start(0));
@@ -117,16 +126,16 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void startWithoutDataSourceServesHttpAndDbIsUnavailable() throws Exception {
-        var app = new TestApp();
+        var app = new TestApp(databaseName);
         app.withDataSource = false;
         server = app.start(0);
         assertEquals(200, send("GET", "/stamp", null).statusCode());
-        assertThrows(IllegalStateException.class, () -> new TestApp() { { withDataSource = false; } }.db());
+        assertThrows(IllegalStateException.class, () -> new TestApp(databaseName) { { withDataSource = false; } }.db());
         assertEquals(0, app.ds.closes.get());
     }
 
     @Test void startTwiceIsRejected() {
-        var app = new TestApp();
+        var app = new TestApp(databaseName);
         server = app.start(0);
         assertThrows(IllegalStateException.class, () -> app.start(0));
     }
@@ -134,13 +143,13 @@ class CoilBaseJexApplicationTest {
     @Test void startWithDefaultPortUsesEnvironmentOrFallback() {
         String port = System.getenv("PORT");
         int fallback = port == null || port.isBlank() ? 0 : -1;
-        server = new TestApp().startWithDefaultPort(fallback);
+        server = new TestApp(databaseName).startWithDefaultPort(fallback);
         if (port == null || port.isBlank() || port.equals("0")) assertTrue(server.port() > 0);
         else assertEquals(Integer.parseInt(port), server.port());
     }
 
     @Test void invalidErrorMappingClosesDatasourceOnStartupFailure() {
-        var app = new TestApp() {
+        var app = new TestApp(databaseName) {
             @Override protected void configureErrorHandling() { mapError(Missing.class, 200); }
         };
         assertThrows(IllegalArgumentException.class, () -> app.start(0));
@@ -148,7 +157,7 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void routeRegistrationFailureClosesDataSourceAndPropagates() {
-        var app = new TestApp();
+        var app = new TestApp(databaseName);
         app.routesFailure = new IllegalArgumentException("bad routes");
         var failure = assertThrows(IllegalArgumentException.class, app::start);
         assertEquals("bad routes", failure.getMessage());
@@ -156,7 +165,7 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void missingDialectUsesDefaultSql() throws Exception {
-        var ds = new CountingDataSource();
+        var ds = new CountingDataSource(databaseName);
         var app = new CoilBaseJexApplication() {
             @Override protected DataSource createPrimaryDataSource() { return ds; }
             @Override protected void registerRoutes(Jex jex) {
@@ -171,49 +180,64 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void nullDialectUsesDefaultSql() throws Exception {
-        server = new TestApp() {
+        server = new TestApp(databaseName) {
             @Override protected Dialects primaryDialect() { return null; }
         }.start(0);
         assertEquals("default", send("GET", "/dialect", null).body());
     }
 
     @Test void explicitDialectStillSelectsSqlOverride() throws Exception {
-        server = new TestApp() {
+        server = new TestApp(databaseName) {
             @Override protected Dialects primaryDialect() { return Dialects.H2; }
         }.start(0);
         assertEquals("h2", send("GET", "/dialect", null).body());
     }
 
     @Test void dataSourceCreationFailurePropagatesWithNothingToClose() {
-        var app = new TestApp() {
-            @Override protected DataSource createPrimaryDataSource() { throw new IllegalStateException("no pool"); }
+        var failure = new IllegalStateException("no pool");
+        var app = new TestApp(databaseName) {
+            @Override protected DataSource createPrimaryDataSource() { throw failure; }
         };
-        assertEquals("no pool", assertThrows(IllegalStateException.class, app::start).getMessage());
+        assertSame(failure, assertThrows(IllegalStateException.class, app::start));
         assertEquals(0, app.ds.closes.get());
+    }
+
+    @Test void schemaInitializationFailurePreventsStartupAndClosesDataSource() {
+        var app = new TestApp(databaseName) {
+            @Override protected void registerRoutes(Jex jex) {
+                db().executeScript("CREATE TABLE broken(");
+            }
+        };
+        var failure = assertThrows(RuntimeException.class, () -> app.start(0));
+        Throwable cause = failure;
+        while (cause.getCause() != null) cause = cause.getCause();
+        assertInstanceOf(SQLException.class, cause);
+        assertEquals(1, app.ds.closes.get());
     }
 
     @Test void jexStartFailureClosesDataSourceExactlyOnce() throws IOException {
         try (var occupied = new ServerSocket(0)) {
-            var app = new TestApp();
+            var app = new TestApp(databaseName);
             assertThrows(RuntimeException.class, () -> app.start(occupied.getLocalPort()));
             assertEquals(1, app.ds.closes.get());
         }
     }
 
     @Test void defaultErrorHandlingCoversMalformedJsonAndUnexpectedFailures() throws Exception {
-        server = new TestApp().start(0);
+        server = new TestApp(databaseName).start(0);
         var malformed = send("POST", "/echo", "{\"name\":");
         assertEquals(400, malformed.statusCode());
         assertEquals("{\"error\":\"bad_request\"}", malformed.body());
-        var boom = send("GET", "/boom", null);
-        assertEquals(500, boom.statusCode());
-        assertEquals("{\"error\":\"internal_error\"}", boom.body());
-        assertFalse(boom.body().contains("secret"));
+        for (var path : new String[]{"/boom", "/database-failure"}) {
+            var failure = send("GET", path, null);
+            assertEquals(500, failure.statusCode());
+            assertEquals("{\"error\":\"internal_error\"}", failure.body());
+        }
         assertEquals(200, send("POST", "/echo", "{\"name\":\"a\"}").statusCode());
     }
 
     @Test void customErrorConfigurationPreservesApplicationContract() throws Exception {
-        server = new TestApp() {
+        server = new TestApp(databaseName) {
             @Override protected void configureErrorHandling(Jex jex) {
                 JexErrors.install(jex, failure -> failure instanceof Missing ? 404 : 500,
                         status -> Map.of("code", status));
@@ -226,7 +250,7 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void errorHandlerCanBeReplacedEntirely() throws Exception {
-        server = new TestApp() {
+        server = new TestApp(databaseName) {
             @Override protected void configureErrorHandling(Jex jex) {
                 jex.error(Missing.class, (ctx, failure) -> ctx.status(418).text("teapot"));
                 jex.error(Exception.class, (ExceptionHandler<Exception>) (ctx, failure) -> ctx.status(599).text("custom"));
@@ -237,11 +261,8 @@ class CoilBaseJexApplicationTest {
     }
 
     @Test void defaultJsonWritesDatesAsIsoStrings() throws Exception {
-        server = new TestApp().start(0);
+        server = new TestApp(databaseName).start(0);
         assertEquals("{\"at\":\"2026-01-02T03:04:05Z\"}", send("GET", "/stamp", null).body());
     }
 
-    @Test void jexErrorsRemainsUsableIndependently() {
-        assertEquals(400, JexErrors.statusOf(new RuntimeException(new com.fasterxml.jackson.core.JsonParseException(null, "x")), f -> 500));
-    }
 }

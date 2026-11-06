@@ -82,7 +82,7 @@ public abstract class CoilBaseJexApplication {
             dataSource = createPrimaryDataSource();
             if (dataSource != null) {
                 var dialect = primaryDialect();
-                db = dialect == null ? new RepositoryContext(dataSource) : new RepositoryContext(dataSource, dialect);
+                db = dialect == null ? RepositoryContext.create(dataSource) : RepositoryContext.create(dataSource, dialect);
             }
             var jex = Jex.create().jsonService(jsonService());
             configureMonitoringIfEnabled(jex);

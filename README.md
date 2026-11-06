@@ -48,7 +48,7 @@ Core keeps SQL and transaction boundaries explicit:
 ```java
 import pvrlabs.coilbase.RepositoryContext;
 
-var db = new RepositoryContext(dataSource);
+var db = RepositoryContext.create(dataSource);
 
 db.transactional(() -> {
     db.update("INSERT INTO greetings(message) VALUES (:message)", update -> update

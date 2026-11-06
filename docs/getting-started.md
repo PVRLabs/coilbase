@@ -147,12 +147,10 @@ For script execution, transactions and migrations, see
 
 [GreetingService](../examples/hello-coilbase/src/main/java/pvrlabs/coilbase/example/hello/GreetingService.java)
 validates a name, then inserts a greeting inside `db.transactional`. The repository
-uses that same managed transaction because it shares the context's Jdbi instance
-and thread. `transactional` supports both value-returning and void work; use
-`inTransaction` when the callback needs a native Jdbi handle.
-Escaping exceptions roll back; caught failures need explicit `markRollbackOnly()`
-when commit must be prevented. Transactions do not propagate to another thread.
-The example tests also verify rollback when an enclosing service operation fails.
+joins that transaction through the shared `RepositoryContext`. An exception escaping
+the transaction rolls back its writes; the repository integration test demonstrates
+rollback against H2. Repository, service and controller are ordinary concrete
+classes wired explicitly through their constructors.
 
 The base closes the returned `AutoCloseable` pool on shutdown or startup failure;
 see [datasource ownership](database-configuration.md#ownership-and-shutdown).
@@ -180,3 +178,9 @@ The example is a separate Maven project, outside the published library reactor
 and JARs. It is licensed under [Apache-2.0](../LICENSE). Database migrations,
 authentication and production deployment are beyond this introduction;
 this introduction keeps the database embedded and configuration minimal.
+
+For service unit tests, `new pvrlabs.coilbase.testing.TestRepositoryContext()` runs
+handle-free `transactional` callbacks immediately, so only repository collaborators need
+mocking. It does not provide SQL, handles, rollback, or database isolation; use the H2
+integration tests for those behaviors. Testing support currently ships in Core and is
+expected to move to a separate `coilbase-testing` module before the first stable release.

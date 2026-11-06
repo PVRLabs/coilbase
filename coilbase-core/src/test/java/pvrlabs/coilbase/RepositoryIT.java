@@ -1,18 +1,23 @@
 package pvrlabs.coilbase;
 
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.h2.jdbcx.JdbcDataSource;
 import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import static org.junit.jupiter.api.Assertions.*;
 
-class RepositoryTest {
-    static Jdbi fresh() {
-        return Jdbi.create("jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
+class RepositoryIT {
+    static Jdbi fresh(TestInfo test, String suffix) {
+        var source = new JdbcDataSource();
+        source.setURL("jdbc:h2:mem:" + test.getTestClass().orElseThrow().getSimpleName()
+                + "_" + test.getTestMethod().orElseThrow().getName() + "_"
+                + System.currentTimeMillis() + "_" + suffix + ";DB_CLOSE_DELAY=-1");
+        return Jdbi.create(source);
     }
     static final class Rows {
         final RepositoryContext db;
@@ -23,7 +28,7 @@ class RepositoryTest {
     }
     static Rows rows(Jdbi jdbi) {
         jdbi.useHandle(h -> h.execute("CREATE TABLE entries(id INT PRIMARY KEY)"));
-        return new Rows(new RepositoryContext(jdbi, Dialects.H2));
+        return new Rows(RepositoryContext.create(jdbi, Dialects.H2));
     }
 
     @Test void statementSelectionIsImmutableAndExtensible() {
@@ -43,18 +48,18 @@ class RepositoryTest {
         assertThrows(IllegalArgumentException.class, () -> both.h2(""));
     }
 
-    @Test void contextWithoutDialectUsesDefaultAndConfiguredDialectFallsBack() {
-        var jdbi = fresh();
+    @Test void contextWithoutDialectUsesDefaultAndConfiguredDialectFallsBack(TestInfo test) {
+        var jdbi = fresh(test, "main");
         var statement = SqlStatement.of("SELECT 1").h2("SELECT 2");
-        var noDialect = new RepositoryContext(jdbi);
+        var noDialect = RepositoryContext.create(jdbi);
         assertEquals("SELECT 1", noDialect.sql(statement));
         assertEquals(1, noDialect.query(statement, q -> q.mapTo(Integer.class).one()).intValue());
-        assertEquals("SELECT 2", new RepositoryContext(jdbi, Dialects.H2).sql(statement));
-        assertEquals("SELECT 1", new RepositoryContext(jdbi, Dialects.POSTGRES).sql(statement));
+        assertEquals("SELECT 2", RepositoryContext.create(jdbi, Dialects.H2).sql(statement));
+        assertEquals("SELECT 1", RepositoryContext.create(jdbi, Dialects.POSTGRES).sql(statement));
     }
 
-    @Test void enumAndStringDialectsShareOverridesAndFallback() {
-        var jdbi = fresh();
+    @Test void enumAndStringDialectsShareOverridesAndFallback(TestInfo test) {
+        var jdbi = fresh(test, "main");
         for (var dialect : Dialects.values()) {
             var original = SqlStatement.of("default");
             var statement = original.override(dialect, "selected");
@@ -63,14 +68,14 @@ class RepositoryTest {
             assertEquals("selected", statement.sql(" " + dialect.name() + " "));
             var fromString = original.override(dialect.name().toLowerCase(java.util.Locale.ROOT), "string");
             assertEquals("string", fromString.sql(dialect));
-            assertEquals("selected", new RepositoryContext(jdbi, dialect).sql(statement));
-            assertEquals("selected", new RepositoryContext(jdbi, dialect.name()).sql(statement));
+            assertEquals("selected", RepositoryContext.create(jdbi, dialect).sql(statement));
+            assertEquals("selected", RepositoryContext.create(jdbi, dialect.name()).sql(statement));
         }
         var custom = SqlStatement.of("default").override("custom-db", "custom");
-        assertEquals("custom", new RepositoryContext(jdbi, " CUSTOM-DB ").sql(custom));
+        assertEquals("custom", RepositoryContext.create(jdbi, " CUSTOM-DB ").sql(custom));
         assertEquals("default", custom.sql(Dialects.POSTGRES));
         assertThrows(NullPointerException.class, () -> custom.override((Dialects) null, "sql"));
-        assertThrows(NullPointerException.class, () -> new RepositoryContext(jdbi, (Dialects) null));
+        assertThrows(NullPointerException.class, () -> RepositoryContext.create(jdbi, (Dialects) null));
     }
 
     @Test void convenienceMethodsUseEnumOverrideKeys() {
@@ -84,19 +89,19 @@ class RepositoryTest {
         assertEquals("convenience", statement.override(Dialects.POSTGRES, "enum").postgres("convenience").sql(Dialects.POSTGRES));
     }
 
-    @Test void sameNamedParametersExecuteAcrossOverrides() {
+    @Test void sameNamedParametersExecuteAcrossOverrides(TestInfo test) {
         var statement = SqlStatement.of("SELECT :id + 0").override(Dialects.H2, "SELECT CAST(:id AS INTEGER)")
                 .override(Dialects.POSTGRES, "SELECT :id::integer");
-        var jdbi = fresh();
+        var jdbi = fresh(test, "main");
         // H2 accepts this PostgreSQL cast; this is binding validation, not PostgreSQL validation.
         for (var dialect : new String[]{"unknown", "h2", "postgres"}) {
-            var db = new RepositoryContext(jdbi, dialect);
+            var db = RepositoryContext.create(jdbi, dialect);
             assertEquals(7, db.withHandle(h -> h.createQuery(db.sql(statement)).bind("id", 7).mapTo(Integer.class).one()).intValue());
         }
     }
 
-    @Test void outsideTransactionCommitsAndClosesResources() {
-        var rows = rows(fresh());
+    @Test void outsideTransactionCommitsAndClosesResources(TestInfo test) {
+        var rows = rows(fresh(test, "main"));
         rows.add(1);
         assertEquals(1, rows.count());
         var handle = rows.handle();
@@ -115,10 +120,10 @@ class RepositoryTest {
         assertEquals(2, rows.count());
     }
 
-    @Test void nativeOuterTransactionAndNestedRepositoriesShareConnection() {
-        var jdbi = fresh();
+    @Test void nativeOuterTransactionAndNestedRepositoriesShareConnection(TestInfo test) {
+        var jdbi = fresh(test, "main");
         var first = rows(jdbi);
-        var second = new Rows(new RepositoryContext(jdbi, Dialects.H2));
+        var second = new Rows(RepositoryContext.create(jdbi, Dialects.H2));
         jdbi.useTransaction(outer -> {
             assertSame(outer, first.handle());
             first.add(1);
@@ -133,8 +138,8 @@ class RepositoryTest {
         assertEquals(2, first.count());
     }
 
-    @Test void queryHelperSelectsSqlAndParticipatesWithoutClosingOuterHandle() {
-        var jdbi = fresh();
+    @Test void queryHelperSelectsSqlAndParticipatesWithoutClosingOuterHandle(TestInfo test) {
+        var jdbi = fresh(test, "main");
         var rows = rows(jdbi);
         var find = SqlStatement.of("SELECT 99").h2("SELECT id FROM entries WHERE id=:id");
         AtomicReference<java.sql.Statement> statement = new AtomicReference<>();
@@ -158,8 +163,8 @@ class RepositoryTest {
         assertEquals(1, rows.db.query("SELECT 1", q -> q.mapTo(Integer.class).one()).intValue());
     }
 
-    @Test void escapingCheckedExceptionRollsBackAndCloses() {
-        var rows = rows(fresh());
+    @Test void escapingCheckedExceptionRollsBackAndCloses(TestInfo test) {
+        var rows = rows(fresh(test, "main"));
         AtomicReference<Handle> seen = new AtomicReference<>();
         assertThrows(IOException.class, () -> rows.db.useTransaction(h -> {
             seen.set(h);
@@ -172,8 +177,8 @@ class RepositoryTest {
         assertEquals(1, rows.count());
     }
 
-    @Test void caughtInnerApplicationExceptionDoesNotMarkRollbackOnly() {
-        var rows = rows(fresh());
+    @Test void caughtInnerApplicationExceptionDoesNotMarkRollbackOnly(TestInfo test) {
+        var rows = rows(fresh(test, "main"));
         rows.db.useTransaction(h -> {
             rows.add(1);
             assertThrows(IllegalStateException.class, () -> rows.db.useTransaction(inner -> {
@@ -184,8 +189,8 @@ class RepositoryTest {
         assertEquals(3, rows.count());
     }
 
-    @Test void anotherThreadCommitsIndependentlyOfOuterRollback() throws Exception {
-        var rows = rows(fresh());
+    @Test void anotherThreadCommitsIndependentlyOfOuterRollback(TestInfo test) throws Exception {
+        var rows = rows(fresh(test, "main"));
         var executor = Executors.newSingleThreadExecutor();
         try {
             assertThrows(IllegalStateException.class, () -> rows.db.useTransaction(outer -> {
@@ -203,10 +208,12 @@ class RepositoryTest {
         }
     }
 
-    @Test void distinctJdbiInstancesEvenOnSameDatabaseDoNotShareTransactions() {
-        var url = "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1";
-        var a = rows(Jdbi.create(url));
-        var b = new Rows(new RepositoryContext(Jdbi.create(url), Dialects.H2));
+    @Test void distinctJdbiInstancesEvenOnSameDatabaseDoNotShareTransactions(TestInfo test) {
+        var source = new JdbcDataSource();
+        source.setURL("jdbc:h2:mem:RepositoryIT_" + test.getTestMethod().orElseThrow().getName()
+                + "_" + System.currentTimeMillis() + ";DB_CLOSE_DELAY=-1");
+        var a = rows(Jdbi.create(source));
+        var b = new Rows(RepositoryContext.create(Jdbi.create(source), Dialects.H2));
         assertThrows(IllegalStateException.class, () -> a.db.useTransaction(outer -> {
             a.add(1);
             assertNotSame(outer, b.handle());
@@ -216,9 +223,9 @@ class RepositoryTest {
         assertEquals(1, a.count());
     }
 
-    @Test void separateDatabasesStayIndependent() {
-        var a = rows(fresh());
-        var b = rows(fresh());
+    @Test void separateDatabasesStayIndependent(TestInfo test) {
+        var a = rows(fresh(test, "first"));
+        var b = rows(fresh(test, "second"));
         assertThrows(IllegalStateException.class, () -> a.db.useTransaction(outer -> {
             a.add(1);
             b.db.useTransaction(inner -> { assertNotSame(outer, inner); b.add(2); });
@@ -228,8 +235,8 @@ class RepositoryTest {
         assertEquals(1, b.count());
     }
 
-    @Test void manuallyOpenedHandleDoesNotEstablishManagedScope() {
-        var jdbi = fresh();
+    @Test void manuallyOpenedHandleDoesNotEstablishManagedScope(TestInfo test) {
+        var jdbi = fresh(test, "main");
         var rows = rows(jdbi);
         try (var manual = jdbi.open()) {
             manual.useTransaction(h -> {

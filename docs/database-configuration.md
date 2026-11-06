@@ -36,7 +36,7 @@ var recentGreetings = SqlStatement.of(
 Configure the SQL dialect once for the repository context:
 
 ```java
-var db = new RepositoryContext(dataSource, Dialects.POSTGRES);
+var db = RepositoryContext.create(dataSource, Dialects.POSTGRES);
 ```
 
 In a Jex application, optionally override `primaryDialect()` to return
@@ -50,7 +50,7 @@ statement through its `query` or `update` methods:
 | Another dialect without an override | Default SQL |
 
 Applications using only default SQL need no dialect configuration: use
-`new RepositoryContext(dataSource)` or leave the Jex `primaryDialect()` hook unchanged.
+`RepositoryContext.create(dataSource)` or leave the Jex `primaryDialect()` hook unchanged.
 
 The datasource and JDBC driver remain application-controlled. CoilBase does not
 automatically switch connections, detect database engines, translate SQL, or
@@ -214,7 +214,7 @@ var reportingDb = new pvrlabs.coilbase.RepositoryContext(
 ```
 
 Omit the dialect argument to use default SQL:
-`new RepositoryContext(reportingDataSource)`.
+`RepositoryContext.create(reportingDataSource)`.
 
 Pass `reportingDb` to reporting repositories and the primary `db()` to primary
 repositories. Register shutdown cleanup and handle startup failures for the extra

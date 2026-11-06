@@ -9,15 +9,16 @@ import java.util.List;
 import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RepositoryContextScriptsTest {
+class RepositoryContextScriptsIT {
     RepositoryContext db;
 
-    @BeforeEach void setup() {
-        db = new RepositoryContext(RepositoryTest.fresh(), Dialects.H2);
+    @BeforeEach void setup(TestInfo test) {
+        db = RepositoryContext.create(RepositoryIT.fresh(test, "main"), Dialects.H2);
         db.useHandle(handle -> handle.execute("CREATE TABLE script_entries(id INT PRIMARY KEY, message VARCHAR(100))"));
     }
 

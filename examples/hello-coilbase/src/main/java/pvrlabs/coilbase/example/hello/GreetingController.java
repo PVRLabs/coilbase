@@ -8,7 +8,7 @@ import java.util.List;
 
 /** Maps greeting HTTP requests to the service; Avaje generates its routing adapter at build time. */
 @Controller("/greetings")
-public final class GreetingController {
+public class GreetingController {
     private final GreetingService service;
     /** JSON request body containing the name to greet. */
     public record NewGreeting(String name) {}

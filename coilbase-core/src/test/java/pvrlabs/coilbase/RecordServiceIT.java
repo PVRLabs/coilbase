@@ -1,25 +1,27 @@
 package pvrlabs.coilbase;
 
-import java.util.UUID;
-import org.jdbi.v3.core.Jdbi;
+import org.h2.jdbcx.JdbcDataSource;
 import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import pvrlabs.coilbase.example.records.AuditRepository;
 import pvrlabs.coilbase.example.records.RecordRepository;
 import pvrlabs.coilbase.example.records.RecordService;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RecordServiceTest {
+class RecordServiceIT {
     RepositoryContext db;
     RecordService service;
 
     @BeforeEach
-    void setup() {
+    void setup(TestInfo test) {
         // Unique name isolates every test; keep the database across managed handle closures.
-        var jdbi = Jdbi.create("jdbc:h2:mem:records-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
-        db = new RepositoryContext(jdbi, Dialects.H2);
+        var source = new JdbcDataSource();
+        source.setURL("jdbc:h2:mem:RecordServiceIT_" + test.getTestMethod().orElseThrow().getName()
+                + "_" + System.currentTimeMillis() + ";DB_CLOSE_DELAY=-1");
+        db = RepositoryContext.create(source, Dialects.H2);
         // Test-owned DDL and fixture data, not production initialization.
         db.useHandle(handle -> {
             handle.execute("CREATE TABLE records(id BIGINT PRIMARY KEY, status VARCHAR(32) NOT NULL)");

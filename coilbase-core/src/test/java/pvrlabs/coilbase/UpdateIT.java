@@ -5,15 +5,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.jdbi.v3.core.Handle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class UpdateTest {
+class UpdateIT {
     RepositoryContext db;
 
     @BeforeEach
-    void setup() {
-        db = new RepositoryContext(RepositoryTest.fresh(), Dialects.H2);
+    void setup(TestInfo test) {
+        db = RepositoryContext.create(RepositoryIT.fresh(test, "main"), Dialects.H2);
         db.useHandle(handle -> handle.execute("CREATE TABLE entries(id INT PRIMARY KEY, amount INT)"));
     }
 

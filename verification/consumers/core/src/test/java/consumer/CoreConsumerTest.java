@@ -10,7 +10,7 @@ class CoreConsumerTest {
     @Test void coreApiIsUsableWithoutHttpOrJsonDependencies() throws Exception {
         var source = new JdbcDataSource();
         source.setURL("jdbc:h2:mem:consumer");
-        var db = new RepositoryContext(source);
+        var db = RepositoryContext.create(source);
         assertEquals(1, db.query(SqlStatement.of("SELECT 1"), q -> q.mapTo(Integer.class).one()).intValue());
         var loader = getClass().getClassLoader();
         for (var name : new String[]{"io.avaje.jex.Jex", "com.fasterxml.jackson.databind.ObjectMapper",

@@ -5,7 +5,7 @@ import java.util.UUID;
 import pvrlabs.coilbase.RepositoryContext;
 
 /** Validates names and creates greetings within an explicit transaction, delegating SQL to the repository. */
-public final class GreetingService {
+public class GreetingService {
     private final RepositoryContext db;
     private final GreetingRepository greetings;
 

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Exercises the base application's shared handler and typed error mappings over HTTP. */
-class ErrorMappingTest {
+class ErrorMappingIT {
     record Input(String name) {}
     static class Problem extends RuntimeException {}
     static final class SpecificProblem extends Problem {}
