@@ -3,8 +3,13 @@
 Use one immutable version across the parent, core, Jex, examples and consumer
 fixtures. Preview tags use the Maven version, for example `0.1.0-preview2`.
 
-1. Update versions, release notes and examples. Run `mvn-lite clean verify`,
-   the example and metrics verification projects, and
+[RepoLink](https://github.com/ejboy/agent-scripts#repolink) locates registered local
+repository checkouts.
+
+1. Update versions, release notes and examples. Run `mvn-lite clean install`
+   from the root so the standalone projects can resolve the new artifacts locally.
+   Then run `mvn-lite -f examples/hello-coilbase/pom.xml verify`,
+   `mvn-lite -f verification/metrics/pom.xml verify`, and
    `python3 scripts/verify-consumers.py`. The consumer check stages the complete
    reactor and resolves it from separate projects with empty Maven caches.
 2. Commit the release source and documentation, push it, and tag that exact
