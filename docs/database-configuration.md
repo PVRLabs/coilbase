@@ -36,7 +36,7 @@ var recentGreetings = SqlStatement.of(
 Configure the SQL dialect once for the repository context:
 
 ```java
-var db = new RepositoryContext(jdbi, Dialects.POSTGRES);
+var db = new RepositoryContext(dataSource, Dialects.POSTGRES);
 ```
 
 In a Jex application, optionally override `primaryDialect()` to return
@@ -50,7 +50,7 @@ statement through its `query` or `update` methods:
 | Another dialect without an override | Default SQL |
 
 Applications using only default SQL need no dialect configuration: use
-`new RepositoryContext(jdbi)` or leave the Jex `primaryDialect()` hook unchanged.
+`new RepositoryContext(dataSource)` or leave the Jex `primaryDialect()` hook unchanged.
 
 The datasource and JDBC driver remain application-controlled. CoilBase does not
 automatically switch connections, detect database engines, translate SQL, or
@@ -61,18 +61,22 @@ matches `POSTGRES`, while `PostgreSQL` is a distinct key.
 
 ## H2: no external database
 
-[Hello CoilBase](../examples/hello-coilbase) uses H2's built-in pool:
+[Hello CoilBase](../examples/hello-coilbase) uses HikariCP with an in-memory H2 database:
 
 ```java
 @Override protected DataSource createPrimaryDataSource() {
-    return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
+    var pool = new HikariDataSource();
+    pool.setJdbcUrl("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1");
+    pool.setUsername("sa");
+    pool.setPassword("");
+    pool.setMaximumPoolSize(4);
+    pool.setMinimumIdle(1);
+    return pool;
 }
 ```
 
-These members belong in your `CoilBaseJexApplication` subclass. Import
-`org.h2.jdbcx.JdbcConnectionPool` and `javax.sql.DataSource`; add
-`com.h2database:h2:2.5.250` as an application dependency. The pool is created during startup, with no constructor plumbing or
-application-level pool field.
+Import `com.zaxxer.hikari.HikariDataSource` and `javax.sql.DataSource`; add
+HikariCP and H2 as application dependencies. The pool is created during startup.
 `DB_CLOSE_DELAY=-1` retains the named in-memory database between connections
 until JVM exit; a process restart loses its data. No Docker or external database
 is required. See [Getting Started](getting-started.md) for build and run commands.
@@ -89,7 +93,7 @@ Configure the public PVR Labs Maven repository as shown in
   <dependency>
     <groupId>xyz.pvrlabs</groupId>
     <artifactId>coilbase-jex</artifactId>
-    <version>0.1.0-preview1</version>
+    <version>0.1.0-preview2</version>
   </dependency>
   <dependency>
     <groupId>com.zaxxer</groupId>
@@ -188,17 +192,11 @@ applications can use Flyway or Liquibase for versioned migrations.
 
 ## Ownership and shutdown
 
-`RepositoryContext` itself never closes a datasource. The Jex base owns only the
-primary datasource returned by `createPrimaryDataSource()`. It attempts cleanup
-once, on startup failure or Jex shutdown:
-
-- `AutoCloseable` datasources, including `HikariDataSource`: call `close()`.
-- H2's exact `org.h2.jdbcx.JdbcConnectionPool` class: invoke its public `dispose()`
-  reflectively. H2 is not `AutoCloseable`; this targeted support adds no H2
-  dependency to the Jex library and performs no generic lifecycle discovery.
-
-Hello CoilBase therefore needs no disposal hook or startup wrapper: its factory
-returns the H2 pool directly, and `main` calls `new HelloApplication().start()`.
+`RepositoryContext` itself never closes a datasource. The Jex base closes the
+primary datasource returned by `createPrimaryDataSource()` once, on startup failure
+or Jex shutdown, when it implements `AutoCloseable`. Otherwise, the application
+is responsible for cleanup. Hello CoilBase returns an `AutoCloseable`
+`HikariDataSource`, so it needs no separate cleanup hook.
 If cleanup fails during startup failure handling, the original startup failure
 is preserved and the cleanup failure is suppressed. A factory that allocates
 resources and fails before returning them must clean those resources up itself.
@@ -211,19 +209,23 @@ Construct another context explicitly, using an application-configured
 
 ```java
 var reportingDb = new pvrlabs.coilbase.RepositoryContext(
-    org.jdbi.v3.core.Jdbi.create(reportingDataSource),
+    reportingDataSource,
     pvrlabs.coilbase.Dialects.POSTGRES);
 ```
 
 Omit the dialect argument to use default SQL:
-`new RepositoryContext(Jdbi.create(reportingDataSource))`.
+`new RepositoryContext(reportingDataSource)`.
 
 Pass `reportingDb` to reporting repositories and the primary `db()` to primary
 repositories. Register shutdown cleanup and handle startup failures for the extra
 pool yourself; the Jex base does not discover or close it.
 
-Managed transactions are scoped to a thread and Jdbi instance. Separate Jdbi
-instances have independent transactions, even if they use the same datasource.
+For advanced configuration, pass a preconfigured Jdbi instance to a
+`RepositoryContext` constructor.
+
+Managed transactions are scoped to a thread and Jdbi instance. Separate contexts
+constructed from a datasource have independent transactions, even when they share
+the same datasource. Contexts passed the same Jdbi instance share its managed scope.
 A primary transaction does not enclose work on `reportingDb`; a reporting commit
 can survive a later primary rollback. There is no cross-datasource atomicity or
 distributed transaction support. Repositories that must participate together

@@ -7,14 +7,12 @@ import io.avaje.jex.http.HttpStatus;
 import io.avaje.jex.http.NotFoundException;
 import io.avaje.jex.core.json.JacksonJsonService;
 import io.avaje.jex.spi.JsonService;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.sql.DataSource;
-import org.jdbi.v3.core.Jdbi;
 import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.RepositoryContext;
 
@@ -37,9 +35,8 @@ import pvrlabs.coilbase.RepositoryContext;
  * Requires Java 21, Jex and Jackson, like {@link JexErrors}.
  *
  * <p>Only the primary datasource returned by {@link #createPrimaryDataSource()} is owned: it is closed on
- * shutdown or startup failure if it implements {@link AutoCloseable}. H2's JdbcConnectionPool is also
- * supported through its public dispose() method, without requiring H2 on the library classpath.
- * Any other resource a subclass creates must be closed by the subclass.
+ * shutdown or startup failure if it implements {@link AutoCloseable}. Otherwise, the subclass must
+ * clean it up. Any other resource a subclass creates must also be closed by the subclass.
  */
 public abstract class CoilBaseJexApplication {
     private static final System.Logger LOG = System.getLogger(CoilBaseJexApplication.class.getName());
@@ -84,9 +81,8 @@ public abstract class CoilBaseJexApplication {
         try {
             dataSource = createPrimaryDataSource();
             if (dataSource != null) {
-                var jdbi = Jdbi.create(dataSource);
                 var dialect = primaryDialect();
-                db = dialect == null ? new RepositoryContext(jdbi) : new RepositoryContext(jdbi, dialect);
+                db = dialect == null ? new RepositoryContext(dataSource) : new RepositoryContext(dataSource, dialect);
             }
             var jex = Jex.create().jsonService(jsonService());
             configureMonitoringIfEnabled(jex);
@@ -209,16 +205,6 @@ public abstract class CoilBaseJexApplication {
         try {
             if (dataSource instanceof AutoCloseable closeable) {
                 closeable.close();
-            } else if (dataSource.getClass().getName().equals("org.h2.jdbcx.JdbcConnectionPool")) {
-                // Only this specific H2 pool is supported; there is no generic lifecycle discovery.
-                try {
-                    dataSource.getClass().getMethod("dispose").invoke(dataSource);
-                } catch (InvocationTargetException failure) {
-                    var cause = failure.getCause();
-                    if (cause instanceof RuntimeException runtime) throw runtime;
-                    if (cause instanceof Error error) throw error;
-                    throw new IllegalStateException("Closing the primary datasource failed", cause);
-                }
             }
         } catch (RuntimeException | Error failure) {
             throw failure;

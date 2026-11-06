@@ -23,9 +23,10 @@ class JexConsumerTest {
         }
     }
 
-    @Test void h2RemainsAnApplicationSuppliedDependency() {
-        assertThrows(ClassNotFoundException.class,
-                () -> Class.forName("org.h2.jdbcx.JdbcConnectionPool"));
+    @Test void jdbcDriversAndPoolsRemainApplicationDependencies() {
+        for (var name : new String[]{"org.h2.Driver", "com.zaxxer.hikari.HikariDataSource"}) {
+            assertThrows(ClassNotFoundException.class, () -> Class.forName(name));
+        }
     }
 
     @Test void defaultHttpJsonHasJavaTimeSupportFromTransitiveDependencies() throws Exception {

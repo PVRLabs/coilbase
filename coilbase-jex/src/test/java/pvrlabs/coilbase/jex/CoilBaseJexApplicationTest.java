@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcDataSource;
-import org.h2.jdbcx.JdbcConnectionPool;
 import org.junit.jupiter.api.*;
 import pvrlabs.coilbase.Dialects;
 import pvrlabs.coilbase.SqlStatement;
@@ -72,22 +71,6 @@ class CoilBaseJexApplicationTest {
         }
     }
 
-    /** Real H2 pool, deliberately not AutoCloseable. */
-    static class H2PoolApp extends CoilBaseJexApplication {
-        final JdbcConnectionPool pool = JdbcConnectionPool.create(
-                "jdbc:h2:mem:" + java.util.UUID.randomUUID() + ";DB_CLOSE_DELAY=-1", "sa", "");
-        RuntimeException routesFailure;
-        @Override protected DataSource createPrimaryDataSource() { return pool; }
-        @Override protected Dialects primaryDialect() { return Dialects.H2; }
-        @Override protected void registerRoutes(Jex jex) {
-            if (routesFailure != null) throw routesFailure;
-            jex.get("/one", ctx -> {
-                int one = db().query("SELECT 1", query -> query.mapTo(Integer.class).one());
-                ctx.text(Integer.toString(one));
-            });
-        }
-    }
-
     final HttpClient client = HttpClient.newHttpClient();
     Jex.Server server;
 
@@ -110,31 +93,6 @@ class CoilBaseJexApplicationTest {
         server.shutdown();
         server = null;
         assertEquals(1, app.ds.closes.get());
-    }
-
-    @Test void h2PoolIsDisposedOnShutdown() throws Exception {
-        var app = new H2PoolApp();
-        server = app.start(0);
-        assertEquals("1", send("GET", "/one", null).body());
-        server.shutdown();
-        server.shutdown();
-        server = null;
-        assertThrows(IllegalStateException.class, app.pool::getConnection);
-    }
-
-    @Test void h2PoolIsDisposedOnStartupFailure() {
-        var app = new H2PoolApp();
-        app.routesFailure = new IllegalArgumentException("bad routes");
-        assertSame(app.routesFailure, assertThrows(IllegalArgumentException.class, () -> app.start(0)));
-        assertThrows(IllegalStateException.class, app.pool::getConnection);
-    }
-
-    @Test void h2PoolIsDisposedWhenServerCannotBind() throws IOException {
-        try (var occupied = new ServerSocket(0)) {
-            var app = new H2PoolApp();
-            assertThrows(RuntimeException.class, () -> app.start(occupied.getLocalPort()));
-            assertThrows(IllegalStateException.class, app.pool::getConnection);
-        }
     }
 
     @Test void autoCloseableCleanupFailurePreservesStartupFailureAndExceptionHandling() {

@@ -46,10 +46,9 @@ Given an application-configured `DataSource` and an existing greetings table,
 Core keeps SQL and transaction boundaries explicit:
 
 ```java
-import org.jdbi.v3.core.Jdbi;
 import pvrlabs.coilbase.RepositoryContext;
 
-var db = new RepositoryContext(Jdbi.create(dataSource));
+var db = new RepositoryContext(dataSource);
 
 db.transactional(() -> {
     db.update("INSERT INTO greetings(message) VALUES (:message)", update -> update
@@ -62,7 +61,7 @@ System.out.println(messages);
 ```
 
 [Get started with a runnable HTTP application →](docs/getting-started.md)
-H2 is included in the example; no Docker or external database is needed.
+The example uses HikariCP with H2; no Docker or external database is needed.
 
 ## Installation
 
@@ -84,11 +83,11 @@ Then add Core (Java 17+) to your dependencies:
 <dependency>
   <groupId>xyz.pvrlabs</groupId>
   <artifactId>coilbase-core</artifactId>
-  <version>0.1.0-preview1</version>
+  <version>0.1.0-preview2</version>
 </dependency>
 ```
 
-For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview1`
+For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview2`
 instead; it includes Core. This is a preview, and APIs may change.
 Applications supply their own JDBC driver, datasource or pool, and row mappers.
 See [Database Configuration](docs/database-configuration.md) for H2, PostgreSQL
@@ -121,7 +120,7 @@ regular transitive dependencies, including Java time support for default ISO-860
 - **Resources:** consume query results inside callbacks. Do not return handles or
   lazy results that outlive them; close streams and batches explicitly. Applications
   configure datasources. The optional Jex application base closes an `AutoCloseable`
-  primary datasource or disposes an H2 `JdbcConnectionPool` on shutdown/startup failure;
+  primary datasource on shutdown/startup failure; otherwise the application handles cleanup;
   see [Database Configuration](docs/database-configuration.md) for ownership details.
 - **Errors:** the Jex base installs safe JSON error handling before calling
   `configureErrorHandling()`. Register typed mappings such as

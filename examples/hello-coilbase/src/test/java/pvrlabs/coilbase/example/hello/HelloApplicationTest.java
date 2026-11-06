@@ -9,7 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.UUID;
-import org.h2.jdbcx.JdbcConnectionPool;
+import com.zaxxer.hikari.HikariDataSource;
 import org.jdbi.v3.core.Jdbi;
 import org.junit.jupiter.api.Test;
 import pvrlabs.coilbase.Dialects;
@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class HelloApplicationTest {
     /** Captures the real application pool and resets its named in-memory database between runs. */
     static class TestApplication extends HelloApplication {
-        JdbcConnectionPool createdPool;
+        HikariDataSource createdPool;
 
         @Override protected DataSource createPrimaryDataSource() {
-            createdPool = (JdbcConnectionPool) super.createPrimaryDataSource();
+            createdPool = (HikariDataSource) super.createPrimaryDataSource();
             try (var connection = createdPool.getConnection(); var statement = connection.createStatement()) {
                 statement.execute("DROP ALL OBJECTS");
             } catch (SQLException failure) {
@@ -33,8 +33,13 @@ class HelloApplicationTest {
         }
     }
 
-    private JdbcConnectionPool pool() {
-        return JdbcConnectionPool.create("jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1", "sa", "");
+    private HikariDataSource pool() {
+        var pool = new HikariDataSource();
+        pool.setJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
+        pool.setUsername("sa");
+        pool.setPassword("");
+        pool.setMaximumPoolSize(4);
+        return pool;
     }
 
     @Test void httpCreateReadValidationAndShutdown() throws Exception {
@@ -66,7 +71,7 @@ class HelloApplicationTest {
         } finally {
             server.shutdown();
         }
-        assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+        assertTrue(app.createdPool.isClosed());
     }
 
     @Test void optionalMonitoringCountsHelloRequestsWithoutCountingMetrics() throws Exception {
@@ -106,7 +111,7 @@ class HelloApplicationTest {
         } finally {
             server.shutdown();
         }
-        assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+        assertTrue(app.createdPool.isClosed());
     }
 
     @Test void databaseFailureUsesSanitizedJsonError() throws Exception {
@@ -122,13 +127,13 @@ class HelloApplicationTest {
         } finally {
             server.shutdown();
         }
-        assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+        assertTrue(app.createdPool.isClosed());
     }
 
     @Test void serviceJoinsTransactionAndRollsBackWithCaller() {
         var pool = pool();
         try {
-            var db = new RepositoryContext(Jdbi.create(pool), Dialects.H2);
+            var db = new RepositoryContext(pool, Dialects.H2);
             db.executeScriptResource("/schema.sql");
             var repository = new GreetingRepository(db);
             var service = new GreetingService(db, repository);
@@ -140,25 +145,25 @@ class HelloApplicationTest {
             var greeting = service.greet("Grace");
             assertEquals(greeting, repository.findAll().getFirst());
         } finally {
-            pool.dispose();
+            pool.close();
         }
     }
 
     @Test void schemaInitializationIsRepeatableAndPreservesData() {
         var pool = pool();
         try {
-            var db = new RepositoryContext(Jdbi.create(pool), Dialects.H2);
+            var db = new RepositoryContext(pool, Dialects.H2);
             db.executeScriptResource("/schema.sql");
             var repository = new GreetingRepository(db);
             var greeting = new GreetingService(db, repository).greet("Ada");
             db.executeScriptResource("/schema.sql");
             assertEquals(java.util.List.of(greeting), repository.findAll());
         } finally {
-            pool.dispose();
+            pool.close();
         }
     }
 
-    @Test void schemaFailurePreventsStartupAndDisposesPool() {
+    @Test void schemaFailurePreventsStartupAndClosesPool() {
         var app = new TestApplication() {
             @Override protected void registerRoutes(io.avaje.jex.Jex jex) {
                 db().executeScript("CREATE TABLE broken(");
@@ -168,7 +173,7 @@ class HelloApplicationTest {
         Throwable cause = failure;
         while (cause.getCause() != null) cause = cause.getCause();
         assertInstanceOf(SQLException.class, cause);
-        assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+        assertTrue(app.createdPool.isClosed());
     }
 
     @Test void failureBeforePoolInitializationKeepsOriginalException() {
@@ -179,11 +184,11 @@ class HelloApplicationTest {
         assertSame(failure, assertThrows(IllegalStateException.class, () -> app.start(0)));
     }
 
-    @Test void serverStartFailureDisposesPool() throws Exception {
+    @Test void serverStartFailureClosesPool() throws Exception {
         try (var occupied = new ServerSocket(0)) {
             var app = new TestApplication();
             assertThrows(RuntimeException.class, () -> app.start(occupied.getLocalPort()));
-            assertThrows(IllegalStateException.class, app.createdPool::getConnection);
+            assertTrue(app.createdPool.isClosed());
         }
     }
 }

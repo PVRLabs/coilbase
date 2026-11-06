@@ -2,13 +2,19 @@ package pvrlabs.coilbase.example.hello;
 
 import io.avaje.jex.Jex;
 import javax.sql.DataSource;
-import org.h2.jdbcx.JdbcConnectionPool;
+import com.zaxxer.hikari.HikariDataSource;
 import pvrlabs.coilbase.jex.CoilBaseJexApplication;
 
 /** Supplies H2, initializes its schema and explicitly wires the controller and its dependencies. */
 public class HelloApplication extends CoilBaseJexApplication {
     @Override protected DataSource createPrimaryDataSource() {
-        return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
+        var pool = new HikariDataSource();
+        pool.setJdbcUrl("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1");
+        pool.setUsername("sa");
+        pool.setPassword("");
+        pool.setMaximumPoolSize(4);
+        pool.setMinimumIdle(1);
+        return pool;
     }
 
     @Override protected void registerRoutes(Jex jex) {

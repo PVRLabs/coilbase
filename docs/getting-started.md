@@ -3,8 +3,8 @@
 Build a greetings API with an annotated controller, database-backed repository,
 service transaction and explicit constructor wiring. Annotated Avaje HTTP
 controllers are the recommended starting point for CoilBase applications using Jex;
-native Jex routes remain available. H2 runs in memory, using its built-in
-`JdbcConnectionPool`; there is no Docker, external database, HikariCP or DI container.
+native Jex routes remain available. The example uses HikariCP with an in-memory H2
+database; there is no Docker, external database or DI container.
 The [complete example](../examples/hello-coilbase) uses Core for persistence and
 the optional Jex module for HTTP and JSON. This HTTP example requires JDK 21+
 and Maven; Core alone supports Java 17+.
@@ -14,14 +14,14 @@ and Maven; Core alone supports Java 17+.
 From the root of your CoilBase checkout:
 
 ```sh
+mvn install
 mvn -f examples/hello-coilbase/pom.xml clean verify
-java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview1.jar
+java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview2.jar
 ```
 
-The example POM configures `https://pvrlabs.github.io/maven/` and resolves
-`xyz.pvrlabs:coilbase-core:0.1.0-preview1` and
-`xyz.pvrlabs:coilbase-jex:0.1.0-preview1` from the public repository. It does
-not require a locally installed CoilBase build. For your own project, see the
+The example POM configures `https://pvrlabs.github.io/maven/` and declares
+`xyz.pvrlabs:coilbase-core:0.1.0-preview2` and
+`xyz.pvrlabs:coilbase-jex:0.1.0-preview2`. For your own project, see the
 [repository configuration and dependencies](../README.md#installation).
 
 The example POM configures `avaje-http-jex-generator` on Maven's annotation
@@ -65,7 +65,13 @@ provides the pool:
 
 ```java
 @Override protected DataSource createPrimaryDataSource() {
-    return JdbcConnectionPool.create("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "");
+    var pool = new HikariDataSource();
+    pool.setJdbcUrl("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1");
+    pool.setUsername("sa");
+    pool.setPassword("");
+    pool.setMaximumPoolSize(4);
+    pool.setMinimumIdle(1);
+    return pool;
 }
 ```
 
@@ -77,7 +83,7 @@ The application explicitly calls
 [`src/main/resources/schema.sql`](../examples/hello-coilbase/src/main/resources/schema.sql)
 as UTF-8 and execute it through Jdbi before registering the controller adapter.
 `CREATE TABLE IF NOT EXISTS` makes this repeatable without deleting existing data;
-missing resources or SQL errors fail startup and dispose the pool. The dependency
+missing resources or SQL errors fail startup and close the pool. The dependency
 graph is ordinary Java:
 
 ```java
@@ -148,14 +154,14 @@ Escaping exceptions roll back; caught failures need explicit `markRollbackOnly()
 when commit must be prevented. Transactions do not propagate to another thread.
 The example tests also verify rollback when an enclosing service operation fails.
 
-The base owns the returned pool and disposes it on shutdown or startup failure;
+The base closes the returned `AutoCloseable` pool on shutdown or startup failure;
 see [datasource ownership](database-configuration.md#ownership-and-shutdown).
 `DB_CLOSE_DELAY=-1` keeps the in-memory database alive between connections until JVM exit.
 
 ## 4. Adapt it
 
 The [example POM](../examples/hello-coilbase/pom.xml) declares
-`xyz.pvrlabs:coilbase-core`, `xyz.pvrlabs:coilbase-jex`, H2 and Avaje HTTP's
+`xyz.pvrlabs:coilbase-core`, `xyz.pvrlabs:coilbase-jex`, HikariCP, H2 and Avaje HTTP's
 annotation API. Core remains independent of HTTP and annotation processing. Generated adapters'
 Jakarta Inject annotations are compile-time metadata (`provided` scope), not a DI
 runtime; the optional Avaje HTTP Inject plugin is excluded. Jex supplies HTTP,

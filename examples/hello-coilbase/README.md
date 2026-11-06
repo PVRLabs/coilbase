@@ -1,18 +1,18 @@
 # Hello CoilBase
 
 A small greetings API using annotated Avaje HTTP controllers, CoilBase Core,
-Jex and an in-memory H2 database. It requires JDK 21+ and Maven; no external
+Jex, HikariCP and an in-memory H2 database. It requires JDK 21+ and Maven; no external
 database is needed.
 
 **[Follow the complete Getting Started walkthrough](../../docs/getting-started.md)**
 for API calls, wiring, transactions and configuration.
 
-From the repository root, build and run the example. Its POM resolves CoilBase
-from the public PVR Labs Maven repository:
+From the repository root, build and run the example:
 
 ```sh
+mvn install
 mvn -f examples/hello-coilbase/pom.xml clean verify
-java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview1.jar
+java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview2.jar
 ```
 
 Keep `examples/hello-coilbase/target/lib/` beside the JAR. The server listens on

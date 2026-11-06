@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import javax.sql.DataSource;
 import org.jdbi.v3.core.HandleCallback;
 import org.jdbi.v3.core.HandleConsumer;
 import org.jdbi.v3.core.Jdbi;
@@ -25,6 +26,28 @@ public final class RepositoryContext {
     private final Jdbi jdbi;
     private final String dialect;
     private final RollbackAwareTransactions transactions;
+
+    /** Creates a context for the application-owned datasource using default SQL.
+     * @throws NullPointerException if dataSource is null
+     */
+    public RepositoryContext(DataSource dataSource) {
+        this(Jdbi.create(Objects.requireNonNull(dataSource, "dataSource")));
+    }
+
+    /** Creates a context for the application-owned datasource using an enum SQL selection key.
+     * @throws NullPointerException if an argument is null
+     */
+    public RepositoryContext(DataSource dataSource, Dialects dialect) {
+        this(Jdbi.create(Objects.requireNonNull(dataSource, "dataSource")), dialect);
+    }
+
+    /** Creates a context for the application-owned datasource using a trimmed, case-insensitive SQL selection key.
+     * @throws IllegalArgumentException if the dialect is blank
+     * @throws NullPointerException if an argument is null
+     */
+    public RepositoryContext(DataSource dataSource, String dialect) {
+        this(Jdbi.create(Objects.requireNonNull(dataSource, "dataSource")), dialect);
+    }
 
     /**
      * Creates a context that selects default SQL without a dialect.
