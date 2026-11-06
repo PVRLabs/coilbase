@@ -60,3 +60,14 @@ hosting directory and publication state.
   digests. Core and Jex standalone consumers passed against
   `https://pvrlabs.github.io/maven/` using separate empty Maven caches; both
   resolved their library and parent POM from the public repository.
+
+## Preview3 publication record — 2026-11-06
+
+- [GitHub prerelease](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview3)
+  and [merged pointer submission](https://github.com/PVRLabs/maven-repo/pull/4).
+- Release source: `01d40353a65ad8b7ec899b4a9fac364ac404a5ce`.
+- Publication audit: `PVRLabs/maven-repo` commit `a44eb9e`.
+- Hosted Maven files: `PVRLabs/pvrlabs.github.io` commit `2ea2855`.
+- All seven public artifacts and their SHA-256 checksum files matched the release
+  digests. Core and Jex standalone consumers passed against
+  `https://pvrlabs.github.io/maven/` using separate fresh Maven caches.
