@@ -49,3 +49,14 @@ The Maven repository's `CONTRIBUTING.md`, `docs/publishing-a-library.md` and
 `docs/publishing.md` describe its pointer format and publisher behavior. Published
 versions are immutable; the publisher runs incrementally against the existing
 hosting directory and publication state.
+
+## Preview2 publication record — 2026-11-06
+
+- [GitHub release](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview2)
+  and [merged pointer submission](https://github.com/PVRLabs/maven-repo/pull/3).
+- Publication audit: `PVRLabs/maven-repo` commit `6b19965`.
+- Hosted Maven files: `PVRLabs/pvrlabs.github.io` commit `e3e34b4`.
+- All seven public assets and their SHA-256 checksum files matched the release
+  digests. Core and Jex standalone consumers passed against
+  `https://pvrlabs.github.io/maven/` using separate empty Maven caches; both
+  resolved their library and parent POM from the public repository.
