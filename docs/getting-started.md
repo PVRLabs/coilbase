@@ -16,12 +16,12 @@ From the root of your CoilBase checkout:
 ```sh
 mvn install
 mvn -f examples/hello-coilbase/pom.xml clean verify
-java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview2.jar
+java -jar examples/hello-coilbase/target/hello-coilbase-0.1.0-preview3.jar
 ```
 
 The example POM configures `https://pvrlabs.github.io/maven/` and declares
-`xyz.pvrlabs:coilbase-core:0.1.0-preview2` and
-`xyz.pvrlabs:coilbase-jex:0.1.0-preview2`. For your own project, see the
+`xyz.pvrlabs:coilbase-core:0.1.0-preview3` and
+`xyz.pvrlabs:coilbase-jex:0.1.0-preview3`. For your own project, see the
 [repository configuration and dependencies](../README.md#installation).
 
 The example POM configures `avaje-http-jex-generator` on Maven's annotation

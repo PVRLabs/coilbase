@@ -1,14 +1,18 @@
-# 0.1.0-preview2
+# 0.1.0-preview3
 
-This preview adds a DataSource-first repository API and simplifies Jex pool
-lifecycle management.
+This preview introduces a breaking repository context API and lightweight support
+for database-free service tests.
 
-- Create repository contexts directly from a `DataSource` with
-  `new RepositoryContext(dataSource)`; dialect selection remains optional.
-- Jex applications configure and own their datasource explicitly. Update
-  applications to follow the revised getting-started and database configuration
-  examples when migrating from preview1.
-- Examples and standalone consumer fixtures now target `0.1.0-preview2`.
+- `RepositoryContext` is now an interface. Replace `new RepositoryContext(...)`
+  with `RepositoryContext.create(...)`, accepting a `DataSource` or `Jdbi` and an
+  optional enum or string dialect. `JdbiRepositoryContext` provides the production
+  implementation and retains managed transaction and rollback-only semantics.
+- `TestRepositoryContext` executes handle-free transactional callbacks directly.
+  SQL, handles, and rollback-only operations are unsupported; use real database
+  integration tests for transaction behavior. Testing support currently ships in
+  Core and is expected to move to a separate module before the first stable release.
+- Hello demonstrates repository-only Mockito unit tests alongside H2 persistence
+  and HTTP integration tests.
 
 See [the release procedure](docs/releasing.md) for artifact publication steps.
 

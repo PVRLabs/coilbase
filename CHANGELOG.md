@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0-preview3](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview3) — 2026-11-06
+
+### Breaking changes
+
+- `RepositoryContext` is now an interface; replace constructor calls with
+  `RepositoryContext.create(...)` or construct `JdbiRepositoryContext` directly.
+
+### Added and changed
+
+- Added `TestRepositoryContext` for database-free, handle-free transactional
+  callbacks in service unit tests. Real database tests remain necessary for SQL,
+  rollback and isolation behavior.
+- Split Hello tests into repository-only unit tests, H2 persistence tests and HTTP
+  integration tests; updated examples and consumer fixtures for preview3.
+
 ## [0.1.0-preview2](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview2) — 2026-11-06
 
 ### Added

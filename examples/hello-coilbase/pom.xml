@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>xyz.pvrlabs</groupId>
   <artifactId>hello-coilbase</artifactId>
-  <version>0.1.0-preview2</version>
+  <version>0.1.0-preview3</version>
   <name>Hello CoilBase</name>
   <licenses>
     <license>
@@ -56,12 +56,12 @@
     <dependency>
       <groupId>xyz.pvrlabs</groupId>
       <artifactId>coilbase-core</artifactId>
-      <version>0.1.0-preview2</version>
+      <version>0.1.0-preview3</version>
     </dependency>
     <dependency>
       <groupId>xyz.pvrlabs</groupId>
       <artifactId>coilbase-jex</artifactId>
-      <version>0.1.0-preview2</version>
+      <version>0.1.0-preview3</version>
     </dependency>
     <dependency>
       <groupId>com.zaxxer</groupId>
