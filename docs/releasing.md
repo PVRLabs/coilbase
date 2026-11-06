@@ -6,6 +6,9 @@ fixtures. Preview tags use the Maven version, for example `0.1.0-preview2`.
 [RepoLink](https://github.com/ejboy/agent-scripts#repolink) locates registered local
 repository checkouts.
 
+[mvn-lite](https://github.com/ejboy/agent-scripts#mvn-lite) is an optional wrapper
+for compact Maven output; use `mvn` in its place if unavailable.
+
 1. Update versions, release notes and examples. Run `mvn-lite clean install`
    from the root so the standalone projects can resolve the new artifacts locally.
    Then run `mvn-lite -f examples/hello-coilbase/pom.xml verify`,
