@@ -65,15 +65,12 @@ provides the pool:
 
 ```java
 @Override protected DataSource createPrimaryDataSource() {
-    var pool = new HikariDataSource();
-    pool.setJdbcUrl("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1");
-    pool.setUsername("sa");
-    pool.setPassword("");
-    pool.setMaximumPoolSize(4);
-    pool.setMinimumIdle(1);
-    return pool;
+    return createHikariPool("jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1", "sa", "", 1, 4);
 }
 ```
+
+For larger applications, see the work-in-progress
+[Application configuration](application-configuration.md) guidance.
 
 The base creates a `RepositoryContext` that selects default SQL. Override `primaryDialect()`
 when statements need dialect-specific SQL; see

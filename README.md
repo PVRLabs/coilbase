@@ -93,6 +93,9 @@ Applications supply their own JDBC driver, datasource or pool, and row mappers.
 See [Database Configuration](docs/database-configuration.md) for H2, PostgreSQL
 with HikariCP, schema scripts and datasource ownership.
 
+See [Application configuration](docs/application-configuration.md) for work-in-progress
+guidance on plain Java configuration and testability.
+
 ## Monitoring (work in progress)
 
 Optional [StatLite monitoring](docs/statlite-monitoring.md) provides basic
