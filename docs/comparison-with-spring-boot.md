@@ -36,8 +36,8 @@ work.
 
 CoilBase does not build that machinery. For the applications it targets, those costs are not justified. Collaborators are
 ordinary Java constructors. Datasource setup, SQL dialect, route registration, and error mappings stay at the composition
-root. Startup order and resource ownership stay visible. The Jex base closes an `AutoCloseable` primary datasource on
-shutdown or startup failure. IDE navigation follows normal Java references, with no component scan required.
+root. Startup order and resource ownership stay visible. IDE navigation follows normal Java references, with no component
+scan required.
 
 In a larger application that repetition can matter. A managed container is a reasonable fit when shared scopes and a wide
 set of conditional infrastructure are the goal. CoilBase is for applications that prefer the wiring to remain in source.
