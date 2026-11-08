@@ -90,6 +90,19 @@ Then add Core (Java 17+) to your dependencies:
 </dependency>
 ```
 
+For Gradle, add the same repository and dependency to your build script, e.g.
+in `build.gradle.kts`:
+
+```kotlin
+repositories {
+    maven { url = uri("https://pvrlabs.github.io/maven/") }
+}
+
+dependencies {
+    implementation("xyz.pvrlabs:coilbase-core:0.1.0-preview3")
+}
+```
+
 For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview3`
 instead; it includes Core. This is a preview, and APIs may change.
 Applications supply their own JDBC driver, datasource or pool, and row mappers.
