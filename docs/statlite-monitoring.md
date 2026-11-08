@@ -5,6 +5,11 @@ monitoring tool: a single Go binary with embedded SQLite storage. It gives small
 deployments basic metrics and health visibility without operating a Prometheus
 and Grafana stack.
 
+![StatLite dashboard showing request traffic, latency, and JVM metrics over
+time](assets/statlite-dashboard.webp)
+
+*Example dashboard from the StatLite project, fed by a sample application.*
+
 This experimental integration may change. It provides basic application and JVM
 metrics without a background sampler or metrics server in the application; it is
 not intended to provide the full capabilities of Spring Boot Actuator.
