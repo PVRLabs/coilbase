@@ -1,21 +1,40 @@
 # StatLite Monitoring
 
-[StatLite](https://github.com/PVRLabs/statlite) is a lightweight, self-hosted
-monitoring tool: a single Go binary with embedded SQLite storage. It gives small
-deployments basic metrics and health visibility without operating a Prometheus
-and Grafana stack.
+A running service benefits from basic production visibility: how much traffic it
+serves, how fast requests are answered, how many errors occur, how JVM heap and
+uptime develop, and whether the application is up at all. A monitoring tool
+polls this data from the application, stores it over time, and turns it into
+trends, so degradation is visible before or while users notice it.
+
+Spring Boot answers this with Actuator: production endpoints such as
+`/actuator/health` and `/actuator/metrics`, dependency health indicators, and
+JVM and HTTP metrics out of the box. Actuator already provides substantial
+visibility on its own, but it reports current state; collecting, storing, and
+charting these measurements over time requires a separate monitoring backend
+such as Prometheus and Grafana, which adds operational components to run.
+
+CoilBase targets smaller deployments where the Spring runtime, and a monitoring
+backend of that scale, are more than the application needs. What it provides
+right now is deliberately modest: an opt-in integration reporting basic
+application and JVM metrics, with no background sampler or metrics server
+inside the application. It is an alternative at this scale, not a replacement
+for Spring Boot Actuator.
+
+[StatLite](https://github.com/PVRLabs/statlite) is the lightweight backend this
+integration feeds: a self-hosted single Go binary with embedded SQLite storage
+that polls the application, stores measurements, and serves a dashboard. It
+gives small deployments basic metrics and health visibility without operating a
+Prometheus and Grafana stack.
 
 ![StatLite dashboard showing request traffic, latency, and JVM metrics over
 time](assets/statlite-dashboard.webp)
 
 *Example dashboard from the StatLite project, fed by a sample application.*
 
-This experimental integration may change. It provides basic application and JVM
-metrics without a background sampler or metrics server in the application; it is
-not intended to provide the full capabilities of Spring Boot Actuator.
-
-`coilbase-core` includes `pvrlabs.coilbase.monitoring.StatLiteMetrics`, a
-process-local, opt-in helper for the [StatLite Metrics v1 contract](https://github.com/PVRLabs/statlite/blob/main/docs/statlite-metrics-v1.md).
+This experimental integration may change. `coilbase-core` includes
+`pvrlabs.coilbase.monitoring.StatLiteMetrics`, a process-local, opt-in helper
+for the
+[StatLite Metrics v1 contract](https://github.com/PVRLabs/statlite/blob/main/docs/statlite-metrics-v1.md).
 It has no HTTP, JSON, or StatLite runtime dependency. Create one instance per
 application process, record each completed application request once, and serve
 its snapshot using the application's JSON mapper. These examples were checked
@@ -150,8 +169,7 @@ also exercises the manual Javalin example over HTTP. From the repository root, i
 
 ## Other monitoring integrations
 
-StatLite is a lightweight, opt-in integration, not a replacement for Micrometer,
-Spring Boot Actuator, or Prometheus-compatible metrics; see
+StatLite is a lightweight, opt-in integration. See
 [CoilBase vs Spring Boot](comparison-with-spring-boot.md) for the broader scope.
 Broader observability support, such as Micrometer or Prometheus-compatible
 metrics, is a potential future addition, prioritized by demand. If you need a
