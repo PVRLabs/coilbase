@@ -1,5 +1,9 @@
 # StatLite Monitoring
 
+StatLite is a lightweight, self-hosted monitoring tool: a single Go binary with
+embedded SQLite storage. It gives small deployments basic metrics and health
+visibility without operating a Prometheus and Grafana stack.
+
 This experimental integration may change. It provides basic application and JVM
 metrics without a background sampler or metrics server in the application; it is
 not intended to provide the full capabilities of Spring Boot Actuator.
@@ -137,3 +141,12 @@ exercise the base application over HTTP. The [verification fixture](../verificat
 also exercises the manual Javalin example over HTTP. From the repository root, install Core with
 `mvn -pl coilbase-core -am -DskipTests install`, then run
 `mvn -f verification/metrics/pom.xml test`. The fixture is not a library module.
+
+## Other monitoring integrations
+
+StatLite is a lightweight, opt-in integration, not a replacement for Micrometer,
+Spring Boot Actuator, or Prometheus-compatible metrics; see
+[CoilBase vs Spring Boot](comparison-with-spring-boot.md) for the broader scope.
+Broader observability support, such as Micrometer or Prometheus-compatible
+metrics, is a potential future addition, prioritized by demand. If you need a
+specific integration, open an issue describing your use case.
