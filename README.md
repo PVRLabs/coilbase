@@ -26,6 +26,9 @@ Native Jex routes remain available for custom endpoints.
 Experiments have used Avaje Jex, Javalin and Micronaut. Read about
 [framework integrations and portability](docs/framework-integrations.md).
 
+Coming from Spring Boot? See [CoilBase vs Spring Boot](docs/comparison-with-spring-boot.md)
+for architectural trade-offs, current capabilities, and guidance on choosing between them.
+
 ### Lightweight runtime
 
 CoilBase is designed for resource-constrained Java deployments. In exploratory
