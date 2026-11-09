@@ -10,7 +10,9 @@ maintainer also authors CoilBase.
 status/audit writes). **M:** earlier Market Replay application (scheduled ingestion,
 latest/history reads and browser UI). Neither includes portfolio editing.
 Compare within each workload; S and M are different applications. S cells show
-**run 1 / run 2**, in that order; M cells are single accepted runs.
+**run 1 / run 2**, in that order; M cells are single accepted runs. S used an
+early CoilBase prototype whose API has since evolved; its results do not measure
+the current preview.
 
 | Workload | Application | Runtime / deployment | Startup / readiness (s) | Workload median app RSS (MiB) | HTTP p95 (ms) |
 | --- | --- | --- | ---: | ---: | ---: |
@@ -62,19 +64,45 @@ differences and `-Ob`/`-O2` ordering should not be generalized. Native compilati
 also costs minutes: S generation took 6m27s–13m03s on a separate two-vCPU/6-GiB
 builder, excluding packaging/tests.
 
+## Spring Boot vs CoilBase preview 3 on 256 MiB Alpine
+
+A separate [published experiment](https://github.com/PVRLabs/experiments/tree/main/java/coilbase-vps-256mb)
+compared Spring Boot 4.1.1 with Spring JDBC against CoilBase 0.1.0-preview3
+with Jex and Jdbi. Both implemented the same quote API using file-backed H2.
+This is a whole-application comparison, not a measurement of CoilBase's
+independent overhead. Each configuration had one accepted run.
+
+| Metric | Spring JDBC | Jex + CoilBase preview 3 |
+| --- | ---: | ---: |
+| Database-backed readiness (s) | 9.35 | 2.42 |
+| Median workload application RSS (MiB) | 125.97 | 94.81 |
+| Minimum idle/load/recovery MemAvailable (MiB) | 43.22 | 79.15 |
+| HTTP p95 (ms) | 9.45 | 6.12 |
+| Correct workload requests | 1,500 / 1,500 | 1,500 / 1,500 |
+
+The VM had one vCPU, 256 MiB allocated RAM and 512 MiB swap; both runs paged.
+H2 runs inside the application, so its memory is included in app RSS. The
+workload offered about five requests per second; latency includes the SSH
+tunnel. A single run per stack does not establish repeatability, capacity or
+minimum memory requirements. The experiment's evidence and reproduction guide
+record the configuration, paging and other limitations. These results are not
+directly comparable with the 512 MiB MariaDB studies above.
+
 ## Sources and future updates
 
 S comprises two accepted HotSpot runs per stack on October 30 and two native
-runs per stack completed by November 4, 2026; its public data release is pending.
-Article 3's link will be added when its public URL is available.
+runs per stack completed by November 4, 2026. The [published summaries and
+verification script](https://github.com/PVRLabs/experiments/tree/main/java/coilbase-framework-comparison)
+contain the per-run metrics and recorded validation results. They do not include
+raw captures or a complete reproduction package. The [related article](https://pvrlabs.xyz/articles/five-java-stacks-512mb-vps.html) discusses the results and implementation tradeoffs.
 
 Published M results and methods:
 [Spring Boot A/F](https://github.com/PVRLabs/experiments/blob/main/spring/boot-jdk27/README.md),
 [Spring Boot Native Image](https://github.com/PVRLabs/experiments/blob/main/spring/boot-jdk27/oracle-native-image/README.md),
 [Javalin HotSpot](https://github.com/PVRLabs/experiments/blob/main/javalin/market-replay-jdk27/README.md),
 [Javalin Native Image](https://github.com/PVRLabs/experiments/blob/main/javalin/market-replay-native/README.md).
-Database/persistence follow-ups, monitoring runs and development-host smokes are
-outside this runtime snapshot.
+Other database/persistence follow-ups, monitoring runs and development-host smokes
+are outside this runtime snapshot.
 
 This URL is the permanent comparison reference. A dedicated formal benchmark can
 replace or supplement this snapshot here, with its own method, application
