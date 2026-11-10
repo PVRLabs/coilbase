@@ -11,6 +11,8 @@ reused across hosts, including Spring Boot, with adaptation at the framework bou
 host. Optional `coilbase-jex` already supplies startup, JSON, error handling, and lifecycle conveniences for Avaje Jex,
 without hiding Jex's own APIs. [Framework integrations](framework-integrations.md) describes what stays portable.
 
+For practical migration steps, see the [Spring Boot migration guide](spring-boot-migration.md).
+
 ## At a glance
 
 | Area | Spring Boot | CoilBase |
@@ -20,7 +22,7 @@ without hiding Jex's own APIs. [Framework integrations](framework-integrations.m
 | Auto-configuration | Starters and conditional infrastructure | None. The application constructs its dependencies |
 | HTTP | Spring MVC or WebFlux | Host routing. `coilbase-jex` adds startup, JSON, errors, and lifecycle |
 | Persistence | JDBC, JPA, or Spring Data | SQL-first Jdbi, with optional dialect overrides |
-| Transactions | Declarative `@Transactional`, propagation and rollback rules | `transactional` on one datasource and thread. Nested work joins it |
+| Transactions | Declarative `@Transactional`, propagation and rollback rules | Explicit transactions scoped to a Jdbi instance and thread; nested operations join the existing transaction |
 | Configuration | Property binding and profiles | Application-owned Java objects and records; explicit environment and system property access |
 | Testing | Spring Test, context and slice tests | Plain Java unit tests, `TestRepositoryContext`, JDBC integration tests |
 

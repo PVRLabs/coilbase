@@ -27,7 +27,8 @@ Experiments have used Avaje Jex, Javalin and Micronaut. Read about
 [framework integrations and portability](docs/framework-integrations.md).
 
 Coming from Spring Boot? See [CoilBase vs Spring Boot](docs/comparison-with-spring-boot.md)
-for architectural trade-offs, current capabilities, and guidance on choosing between them.
+for architectural trade-offs, and the [Spring Boot migration guide](docs/spring-boot-migration.md)
+for practical migration steps.
 
 ### Lightweight runtime
 
