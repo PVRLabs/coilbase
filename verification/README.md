@@ -1,5 +1,8 @@
 # Consumer verification
 
+For the engineering constraints behind these checks, see
+[Development Principles](../docs/development-principles.md).
+
 Run from the project root with JDK 21+, Maven and Python 3:
 
 ```sh

@@ -165,4 +165,9 @@ For standalone consumer and parent-POM resolution checks, see
 [consumer verification](verification/README.md). Maven distribution includes the
 parent POM and both modules; applications depend only on the modules they need.
 
+## Development
+
+See [Development Principles](docs/development-principles.md) for the architectural
+and engineering guidance for contributors.
+
 Licensed under [Apache-2.0](LICENSE). Dependencies retain their respective licenses.
