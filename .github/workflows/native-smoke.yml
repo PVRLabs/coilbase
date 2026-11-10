@@ -1,0 +1,34 @@
+name: Native Image smoke
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  native-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+      - name: Show GraalVM version
+        run: java -version
+      - name: Build libraries and example
+        run: |
+          mvn -B -DskipTests install
+          mvn -B -f examples/hello-coilbase/pom.xml -DskipTests package
+      - name: Collect application reachability metadata
+        run: |
+          python3 .github/scripts/native-smoke.py java \
+            -agentlib:native-image-agent=config-output-dir=examples/hello-coilbase/target/native-agent \
+            -jar examples/hello-coilbase/target/hello-coilbase.jar
+      - name: Build native executable
+        run: mvn -B -f examples/hello-coilbase/pom.xml -Pnative -DskipTests native:compile
+      - name: Run native smoke checks and record measurements
+        run: python3 .github/scripts/native-smoke.py --measure examples/hello-coilbase/target/hello-coilbase

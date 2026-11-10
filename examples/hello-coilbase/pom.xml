@@ -86,6 +86,7 @@
     </dependency>
   </dependencies>
   <build>
+    <finalName>hello-coilbase</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -148,4 +149,26 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <version>1.1.12</version>
+            <configuration>
+              <imageName>hello-coilbase</imageName>
+              <mainClass>pvrlabs.coilbase.example.hello.HelloApplication</mainClass>
+              <metadataRepository><enabled>true</enabled></metadataRepository>
+              <buildArgs>
+                <buildArg>-H:ConfigurationFileDirectories=${project.build.directory}/native-agent</buildArg>
+              </buildArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
