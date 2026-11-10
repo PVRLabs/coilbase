@@ -155,6 +155,9 @@ regular transitive dependencies, including Java time support for default ISO-860
   [Hello CoilBase example](examples/hello-coilbase) is a separate Maven project;
   these examples are excluded from library binary and source JARs. Run `mvn clean verify` for the H2-backed
   persistence tests and Jex HTTP tests; these do not certify every database dialect.
+  Fast integration tests run routinely. Tag heavyweight JUnit tests with `@Tag("slow")`;
+  run `mvn -Pslow-tests verify` to include them along with the normal tests. CI runs
+  this profile in a separate job.
 
 CoilBase has a deliberately narrow scope: it is not a DI container, an ORM,
 or an abstraction over every Java HTTP framework. There is no automatic migration.

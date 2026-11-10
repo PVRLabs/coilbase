@@ -26,6 +26,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
+    <test.excludedGroups>slow</test.excludedGroups>
   </properties>
   <build>
     <resources>
@@ -56,6 +57,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.3</version>
         <configuration>
+          <excludedGroups>${test.excludedGroups}</excludedGroups>
           <includes>
             <include>**/*Test.java</include>
             <include>**/*IT.java</include>
@@ -77,4 +79,12 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>slow-tests</id>
+      <properties>
+        <test.excludedGroups></test.excludedGroups>
+      </properties>
+    </profile>
+  </profiles>
 </project>

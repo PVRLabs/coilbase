@@ -78,6 +78,26 @@ shutdown. Preserve the original failure when cleanup also fails. Avoid hidden
 resource creation, transactions or other side effects, and ensure resources do
 not escape the scope that owns them.
 
+## Keep testing focused and fast
+
+Protect meaningful behavior and realistic failures with a small number of
+representative tests at the appropriate level. Avoid duplicating coverage across
+unit, integration and end-to-end tests unless the distinction catches a concrete risk.
+
+Keep routine Maven tests fast, including integration tests. Prefer lightweight local
+dependencies such as H2, deterministic synchronization and controlled failure
+injection. Avoid unnecessary sleeps, external services and heavyweight infrastructure
+in the default suite. Evaluate tests or groups taking roughly 30 seconds or more for
+an optional suite, considering their value, runtime variability and cumulative cost;
+prefer simplifying a slow test before excluding it.
+
+Run heavyweight tests only when explicitly requested locally, and include them in CI
+using a documented Maven profile or property. Keep `mvn test` and `mvn verify`
+practical for frequent development. Keep long-running workloads, external-system
+demonstrations and performance experiments separate from routine verification.
+Periodically review execution times and remove redundant or disproportionately
+expensive coverage. Do not add elaborate infrastructure solely to increase test counts.
+
 ## Evolve through evidence and observable contracts
 
 Prefer incremental changes that preserve documented behavior and keep public APIs
