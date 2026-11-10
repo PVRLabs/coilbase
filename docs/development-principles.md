@@ -32,8 +32,8 @@ Keep optional functionality behind explicit opt-in even when it lives in an
 existing module: avoid loading or initializing its implementation and starting
 its background work when it is disabled. Initialize enabled functionality at a
 predictable lifecycle point so configuration and startup failures remain visible.
-This applies to features such as monitoring or static-resource support where
-appropriate; module packaging alone does not make a feature mandatory.
+This applies to features such as monitoring or static-resource support; module
+packaging alone does not make a feature mandatory.
 
 Treat memory-constrained deployments and small VPS environments as first-class
 use cases. Assess dependencies and features for memory, startup cost, runtime

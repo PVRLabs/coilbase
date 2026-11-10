@@ -168,6 +168,16 @@ For Jex, annotated controllers are the recommended application structure. Native
 routes can coexist with them, for example `jex.get("/ping", ctx -> ctx.text("pong"))`
 inside `registerRoutes`. Both use the same Jex server and explicit lifecycle.
 
+Hello CoilBase enables static resources in its `main` method:
+
+```java
+// Serve files from src/main/resources/static/.
+new HelloApplication().enableStaticResources().start();
+```
+
+This serves `src/main/resources/static/` at the HTTP root and is off by default;
+see [Static resources](comparison-with-spring-boot.md#static-resources).
+
 For PostgreSQL with HikariCP, additional datasources and lifecycle details, see
 [Database Configuration](database-configuration.md).
 

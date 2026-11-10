@@ -93,6 +93,74 @@ class CoilBaseJexApplicationIT {
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    @Test void staticResourcesAreDisabledByDefault() throws Exception {
+        var app = new TestApp(databaseName);
+        app.withDataSource = false;
+        server = app.start(0);
+        assertEquals(404, send("GET", "/app.js", null).statusCode());
+        assertThrows(IllegalStateException.class, app::enableStaticResources);
+    }
+
+    @Test void staticResourcesAndApplicationRoutesCoexist() throws Exception {
+        var app = new TestApp(databaseName) {
+            @Override protected void registerRoutes(Jex jex) {
+                jex.get("/fragment", ctx -> ctx.contentType("text/html").text("<b>fragment</b>"));
+                jex.get("/overlap", ctx -> ctx.text("dynamic"));
+            }
+        };
+        app.withDataSource = false;
+        assertSame(app, app.enableStaticResources());
+        server = app.start(0);
+        assertEquals("<h1>Welcome</h1>\n", send("GET", "/", null).body());
+        assertEquals("dynamic", send("GET", "/overlap", null).body());
+        assertEquals("<b>fragment</b>", send("GET", "/fragment", null).body());
+        for (var entry : Map.of("/app.js", "text/javascript", "/styles.css", "text/css", "/favicon.svg", "image/svg+xml", "/index.html", "text/html").entrySet()) {
+            var response = send("GET", entry.getKey(), null);
+            assertEquals(200, response.statusCode(), entry.getKey());
+            assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith(entry.getValue()), entry.getKey());
+        }
+        var head = send("HEAD", "/styles.css", null);
+        assertEquals(200, head.statusCode());
+        assertEquals("", head.body());
+        assertEquals(404, send("GET", "/absent", null).statusCode());
+        assertNotEquals(200, send("GET", "/%2e%2e/secret.txt", null).statusCode());
+    }
+
+    @Test void explicitRootRouteTakesPrecedenceOverWelcomePage() throws Exception {
+        var app = new TestApp(databaseName) {
+            @Override protected void registerRoutes(Jex jex) {
+                jex.get("/", ctx -> ctx.text("dynamic root"));
+            }
+        };
+        app.withDataSource = false;
+        server = app.enableStaticResources().start(0);
+        assertEquals("dynamic root", send("GET", "/", null).body());
+    }
+
+    @Test void staticResourcesCannotBeEnabledAfterFailedStartup() {
+        var app = new TestApp(databaseName);
+        app.routesFailure = new IllegalArgumentException("startup failed");
+        assertThrows(IllegalArgumentException.class, () -> app.start(0));
+        assertThrows(IllegalStateException.class, app::enableStaticResources);
+    }
+
+    @Test void staticResourcesAndMonitoringCanBeChainedInEitherOrder() throws Exception {
+        for (boolean monitoringFirst : new boolean[]{false, true}) {
+            var app = new TestApp(databaseName);
+            app.withDataSource = false;
+            var configured = monitoringFirst
+                    ? app.enableMonitoring().enableStaticResources()
+                    : app.enableStaticResources().enableMonitoring();
+            assertSame(app, configured);
+            server = configured.start(0);
+            assertEquals(200, send("GET", "/app.js", null).statusCode());
+            assertEquals(200, send("GET", "/statlite/metrics", null).statusCode());
+            assertEquals(200, send("GET", "/stamp", null).statusCode());
+            server.shutdown();
+            server = null;
+        }
+    }
+
     @Test void startsServesQueriesThroughContextAndClosesDataSourceOnShutdown() throws Exception {
         var app = new TestApp(databaseName);
         server = app.start(0);

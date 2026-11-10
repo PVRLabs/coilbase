@@ -26,6 +26,7 @@ import pvrlabs.coilbase.RepositoryContext;
  *   <li>create Jex and configure JSON ({@link #objectMapper()}, {@link #jsonService()});</li>
  *   <li>install default error handling (customizable through {@link #configureErrorHandling()});</li>
  *   <li>{@link #registerRoutes(Jex)}: the application builds its services and registers controllers;</li>
+ *   <li>install static resources if enabled via {@link #enableStaticResources()};</li>
  *   <li>register shutdown cleanup of the datasource this class owns;</li>
  *   <li>start Jex. Anything that fails before Jex is serving closes the owned datasource and is rethrown.</li>
  * </ol>
@@ -49,11 +50,19 @@ public abstract class CoilBaseJexApplication {
     private DataSource dataSource;
     private RepositoryContext db;
     private boolean monitoringEnabled;
+    private boolean staticResourcesEnabled;
 
     /** Enables process-local StatLite metrics. Call before starting the application. */
     public final CoilBaseJexApplication enableMonitoring() {
         if (started.get()) throw new IllegalStateException("Application already started");
         monitoringEnabled = true;
+        return this;
+    }
+
+    /** Enables classpath:/static/ resources at the HTTP root. Call before starting the application. */
+    public final CoilBaseJexApplication enableStaticResources() {
+        if (started.get()) throw new IllegalStateException("Application already started");
+        staticResourcesEnabled = true;
         return this;
     }
 
@@ -135,6 +144,7 @@ public abstract class CoilBaseJexApplication {
         installDefaultErrorHandling(jex);
         configureErrorHandling(jex);
         registerRoutes(jex);
+        if (staticResourcesEnabled) JexStaticResources.install(jex);
         if (monitoring != null) monitoring.instrumentUnmatchedRequests(jex);
     }
 

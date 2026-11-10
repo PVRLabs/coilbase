@@ -23,9 +23,9 @@ Licensed under [Apache-2.0](../../LICENSE).
 
 The separate Native Image CI smoke test builds this example with GraalVM on Linux.
 It records reachability metadata by running the same HTTP checks on the JVM, then
-checks the native executable: an empty list, a transactional insert, invalid input,
-and reading back the committed greeting. It reports executable size, approximate
-time to the first HTTP response, and RSS after readiness as informational values;
+checks the native executable: the static welcome page, an empty list, a transactional
+insert, invalid input, and reading back the committed greeting. It reports executable
+size, approximate time to the first HTTP response, and RSS after readiness as informational values;
 these are not benchmarks. Rollback is covered by the JVM repository integration
 test, not by this HTTP smoke test. The smoke test uses in-memory H2 and does not
 exercise PostgreSQL or other database configurations.

@@ -24,7 +24,7 @@ public class HelloApplication extends CoilBaseJexApplication {
     }
 
     public static void main(String[] args) {
-        new HelloApplication().start();
+        new HelloApplication().enableStaticResources().start();
     }
 
     private static HikariDataSource createHikariPool(

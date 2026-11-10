@@ -74,6 +74,27 @@ Planned, and not shipped, is a standardized `ConfigProperties` abstraction over 
 runtime updates through an application-defined interface. Changing a property would not itself rebuild a datasource or any
 other object already constructed. See [Application configuration](application-configuration.md).
 
+## Static resources
+
+Spring Boot serves `static/` automatically. CoilBase Jex serves it only when you call
+`enableStaticResources()`, because many applications are API-only and static serving adds a public
+file surface and a catch-all GET route they never asked for.
+
+```java
+new Application().enableStaticResources().start();
+```
+
+It uses the same `src/main/resources/static/` directory as Spring Boot, with `index.html` as the
+welcome page. Explicit routes win, and there is no SPA fallback. Only `static/` is served, not
+`public/` or `resources/`. Everything under `static/` on the classpath is public.
+
+For Native Image, include the assets as resources in
+`META-INF/native-image/<group>/<app>/resource-config.json`:
+
+```json
+{"resources":{"includes":[{"pattern":"static/.*"}]}}
+```
+
 ## Selective integrations
 
 CoilBase adds a few conveniences on libraries that already do the work.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `CoilBaseJexApplication.enableStaticResources()` serves classpath `/static/` at the HTTP root.
+  Static serving is disabled by default. See [static resources](docs/comparison-with-spring-boot.md#static-resources).
+
 ## [0.1.0-preview3](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview3) — 2026-11-06
 
 ### Breaking changes

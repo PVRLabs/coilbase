@@ -64,6 +64,12 @@ try:
                     summary.write(report)
             except OSError as error:
                 print(f'Could not write job summary: {error}', file=sys.stderr)
+    with urllib.request.urlopen('http://127.0.0.1:18080/', timeout=2) as response:
+        assert response.status == 200 and b'Hello CoilBase' in response.read()
+        assert response.headers.get_content_type() == 'text/html'
+    head = urllib.request.Request('http://127.0.0.1:18080/', method='HEAD')
+    with urllib.request.urlopen(head, timeout=2) as response:
+        assert response.status == 200 and response.read() == b''
     status, created = request('POST', {'name': 'Ada'})
     assert status == 201 and created['id'] and created['message'] == 'Hello, Ada!', (status, created)
     status, _ = request('POST', {'name': ' '})
