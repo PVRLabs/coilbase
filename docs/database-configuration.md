@@ -93,7 +93,7 @@ Configure the public PVR Labs Maven repository as shown in
   <dependency>
     <groupId>xyz.pvrlabs</groupId>
     <artifactId>coilbase-jex</artifactId>
-    <version>0.1.0-preview3</version>
+    <version>0.1.0-preview4</version>
   </dependency>
   <dependency>
     <groupId>com.zaxxer</groupId>

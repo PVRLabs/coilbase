@@ -87,7 +87,7 @@ Then add Core (Java 17+) to your dependencies:
 <dependency>
   <groupId>xyz.pvrlabs</groupId>
   <artifactId>coilbase-core</artifactId>
-  <version>0.1.0-preview3</version>
+  <version>0.1.0-preview4</version>
 </dependency>
 ```
 
@@ -100,11 +100,11 @@ repositories {
 }
 
 dependencies {
-    implementation("xyz.pvrlabs:coilbase-core:0.1.0-preview3")
+    implementation("xyz.pvrlabs:coilbase-core:0.1.0-preview4")
 }
 ```
 
-For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview3`
+For the optional Jex integration (Java 21+), use `xyz.pvrlabs:coilbase-jex:0.1.0-preview4`
 instead; it includes Core. This is a preview, and APIs may change.
 Applications supply their own JDBC driver, datasource or pool, and row mappers.
 See [Database Configuration](docs/database-configuration.md) for H2, PostgreSQL

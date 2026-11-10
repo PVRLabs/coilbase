@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.1.0-preview4](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview4) — 2026-11-09
 
 ### Added
 

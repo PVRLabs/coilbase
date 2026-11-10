@@ -50,7 +50,7 @@ for module in ("core", "jex"):
             "-Dscope=runtime", "-DoutputFile=target/runtime-dependencies.txt"], consumer)
     # These consumers have no parent and are outside the producer reactor. Maven
     # must fetch the library parent from the staged repository to resolve them.
-    parent = cache / "xyz/pvrlabs/coilbase-parent/0.1.0-preview3/coilbase-parent-0.1.0-preview3.pom"
+    parent = cache / "xyz/pvrlabs/coilbase-parent/0.1.0-preview4/coilbase-parent-0.1.0-preview4.pom"
     assert parent.is_file(), "Library parent was not resolved"
     tree = (consumer / "target/runtime-dependencies.txt").read_text()
     if module == "core":

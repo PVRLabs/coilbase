@@ -1,18 +1,13 @@
-# 0.1.0-preview3
+# 0.1.0-preview4
 
-This preview introduces a breaking repository context API and lightweight support
-for database-free service tests.
+This preview adds opt-in static resource serving to the Jex integration.
 
-- `RepositoryContext` is now an interface. Replace `new RepositoryContext(...)`
-  with `RepositoryContext.create(...)`, accepting a `DataSource` or `Jdbi` and an
-  optional enum or string dialect. `JdbiRepositoryContext` provides the production
-  implementation and retains managed transaction and rollback-only semantics.
-- `TestRepositoryContext` executes handle-free transactional callbacks directly.
-  SQL, handles, and rollback-only operations are unsupported; use real database
-  integration tests for transaction behavior. Testing support currently ships in
-  Core and is expected to move to a separate module before the first stable release.
-- Hello demonstrates repository-only Mockito unit tests alongside H2 persistence
-  and HTTP integration tests.
+- Call `CoilBaseJexApplication.enableStaticResources()` to serve classpath
+  `/static/` at the HTTP root. Static serving is disabled by default.
+- The Hello example demonstrates static resources, and the native-image smoke
+  workflow exercises the example on GraalVM.
+- New documentation covers migration from Spring Boot and compares the two
+  approaches.
 
 See [the release procedure](docs/releasing.md) for artifact publication steps.
 
