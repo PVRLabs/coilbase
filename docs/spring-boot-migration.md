@@ -6,6 +6,13 @@ Start with the [CoilBase installation instructions](../README.md#installation) a
 
 Keep the existing application running as a baseline. Capture its routes, response shapes, validation rules, configuration, database changes, and rollback behavior before replacing framework components. Run the same behavior checks against separate databases for the original and migrated applications.
 
+For a worked JPA-to-explicit-SQL example, see the
+[CoilBase PetClinic migration guide](https://github.com/ejboy/coilbase-petclinic/blob/main/docs/migration.md).
+It illustrates one application design, not a required CoilBase architecture.
+Migrating JPA relationships and transaction behavior requires explicit decisions
+about loading, writes and rollback. Readiness checks should exercise the resources
+the application needs; an HTTP root response alone may not establish database readiness.
+
 ## Choose what to carry over
 
 | Spring application | CoilBase and Jex | Migration |

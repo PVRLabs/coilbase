@@ -67,6 +67,13 @@ System.out.println(messages);
 [Get started with a runnable HTTP application →](docs/getting-started.md)
 The example uses HikariCP with H2; no Docker or external database is needed.
 
+## Reference application
+
+[CoilBase PetClinic](https://github.com/ejboy/coilbase-petclinic) is a complete
+reference application based on Spring PetClinic. Its migration guide explains
+one approach to replacing JPA with explicit SQL and service-owned transactions.
+For a smaller starting point, see [Hello CoilBase](examples/hello-coilbase).
+
 ## Installation
 
 Add the PVR Labs Maven repository to your project's `pom.xml`:
