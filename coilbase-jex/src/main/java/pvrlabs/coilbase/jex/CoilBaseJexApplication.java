@@ -148,7 +148,17 @@ public abstract class CoilBaseJexApplication {
         if (monitoring != null) monitoring.instrumentUnmatchedRequests(jex);
     }
 
-    /** Register application exception mappings with {@link #mapError(Class, int, String)} before serving. */
+    /**
+     * Override this hook to register application exception mappings before serving.
+     * Call {@link #mapError(Class, int)} or {@link #mapError(Class, int, String)} here.
+     *
+     * <pre>{@code
+     * @Override
+     * protected void configureErrorHandling() {
+     *     mapError(MyApplicationException.class, 400);
+     * }
+     * }</pre>
+     */
     protected void configureErrorHandling() {}
 
     /**
@@ -158,13 +168,19 @@ public abstract class CoilBaseJexApplication {
      */
     protected void configureErrorHandling(Jex jex) { configureErrorHandling(); }
 
-    /** Maps an exception to an error status and its standard HTTP code, or generic internal_error for 5xx. */
+    /**
+     * Maps an exception to an error status and its standard HTTP code, or generic internal_error for 5xx.
+     * Call this from an overridden {@link #configureErrorHandling()} method.
+     */
     protected final void mapError(Class<? extends Exception> type, int status) {
         mapError(type, status, defaultErrorCode(status));
     }
 
     /**
      * Registers an exception's status and JSON {"error": code} response during startup configuration.
+     * Call this from an overridden {@link #configureErrorHandling()} method.
+     *
+     * <p>
      * The nearest mapped superclass wins, independent of registration order. If the thrown exception
      * has no mapping, its causes are checked in order. Registering the same type again replaces it.
      * @throws NullPointerException if type or code is null
