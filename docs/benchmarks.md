@@ -14,6 +14,11 @@ Compare within each workload; S and M are different applications. S cells show
 early CoilBase prototype whose API has since evolved; its results do not measure
 the current preview.
 
+[![Five-stack HotSpot workload RSS: two runs per stack, on a zero-based 0–200 MiB scale](hotspot-rss.svg)](https://pvrlabs.xyz/articles/five-java-stacks-512mb-vps.html#hotspot-fit-and-remaining-headroom)
+
+Application RSS is the median within each synthetic workload run; it excludes
+MariaDB and other host memory. Two runs do not establish confidence intervals.
+
 | Workload | Application | Runtime / deployment | Startup / readiness (s) | Workload median app RSS (MiB) | HTTP p95 (ms) |
 | --- | --- | --- | ---: | ---: | ---: |
 | S | Spring Boot + Spring JDBC | HotSpot JDK 27, G1 | 7.425 / 8.653 | 180.6 / 187.9 | 7.56 / 6.10 |
