@@ -17,6 +17,7 @@ java -jar examples/hello-coilbase/target/hello-coilbase.jar
 
 Keep `examples/hello-coilbase/target/lib/` beside the JAR. The server listens on
 port 8080 by default; set `PORT=8081` to change it. Press Ctrl-C to stop.
+See the [deployment guide](../../docs/deployment.md) for packaging and running a deployment.
 
 This standalone example is separate from the library reactor and published JARs.
 Licensed under [Apache-2.0](../../LICENSE).

@@ -33,6 +33,7 @@ The generator is a build dependency, not a shipped runtime dependency.
 The build copies runtime dependencies into `target/lib/`, referenced by the JAR
 manifest. Keep that directory beside the JAR. The server starts on port 8080;
 set `PORT=8081` before the Java command to change it.
+For distribution and Linux service setup, see the [deployment guide](deployment.md).
 
 ## 2. Call the API
 
