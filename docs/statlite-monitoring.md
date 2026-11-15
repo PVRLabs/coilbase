@@ -16,8 +16,7 @@ such as Prometheus and Grafana, which adds operational components to run.
 CoilBase targets smaller deployments where the Spring runtime, and a monitoring
 backend of that scale, are more than the application needs. What it provides
 right now is deliberately modest: an opt-in integration reporting basic
-application and JVM metrics, with no background sampler or metrics server
-inside the application. It is an alternative at this scale, not a replacement
+application and JVM metrics, with an optional database health sampler. It is an alternative at this scale, not a replacement
 for Spring Boot Actuator.
 
 [StatLite](https://github.com/PVRLabs/statlite) is the lightweight backend this
@@ -66,6 +65,21 @@ as a fixed application status, not a readiness or database check. Normal error
 handlers and mappings remain in effect. Unmatched routes return 404 by default;
 applications can override this with their own error mappings. Monitoring records
 the actual response status, whichever mapping the application chooses.
+
+When a primary datasource is configured, monitoring also reports `database_status`.
+A background check runs initially and then 60 seconds after each completed check;
+scrapes use the cached result. The field is omitted until the first check completes;
+failures report `DOWN` until a later check succeeds. Application status remains
+independent. Without a primary datasource the field is omitted. The sampler stops
+on shutdown; a JDBC driver that ignores interruption may take longer to finish an
+in-progress connection or query.
+
+The two-second SQL query timeout does not bound connection acquisition. Configure
+the datasource pool and JDBC driver connection timeouts for your deployment; for
+example, HikariCP's `connectionTimeout` limits how long a caller waits for a pool
+connection. CoilBase accepts application-provided datasources and cannot enforce
+their timeout behavior. If acquisition or a query never returns, the single
+sampler cannot refresh again and the last result can remain stale indefinitely.
 
 Jex 3.6 bypasses filters for unmatched routes. Monitoring delegates those errors
 to the handler Jex would otherwise select and counts the response with zero
@@ -140,9 +154,9 @@ every database dialect; it does not join a
 managed business transaction. A runtime failure returns an unhealthy result
 without exposing the exception. The timeout must be positive and is passed to
 the JDBC query; connection acquisition and driver behavior may take longer.
-The application decides whether and when to invoke it, and how to cache or
-use the result. Nothing schedules checks or connects the probe to the metrics
-endpoint. Avoid running it on each metrics request.
+Outside the Jex integration, the application decides when to invoke it and how to
+cache or use the result. Avoid running it on each metrics request. Jex uses a
+two-second query timeout, which does not bound connection acquisition.
 
 ## Configure StatLite
 
@@ -161,11 +175,16 @@ a load-balanced URL across independent processes. The examples exclude the
 metrics path for all methods, including failed requests to that path. If a proxy
 or application uses a different path, update the exclusion as well.
 
-The [Jex tests](../coilbase-jex/src/test/java/pvrlabs/coilbase/jex/MonitoringTest.java)
+The [Jex tests](../coilbase-jex/src/test/java/pvrlabs/coilbase/jex/MonitoringIT.java)
 exercise the base application over HTTP. The [verification fixture](../verification/metrics/src/test/java/pvrlabs/coilbase/verification/MetricsExamplesTest.java)
 also exercises the manual Javalin example over HTTP. From the repository root, install Core with
 `mvn -pl coilbase-core -am -DskipTests install`, then run
 `mvn -f verification/metrics/pom.xml test`. The fixture is not a library module.
+
+The optional slow suite also tests collection by StatLite using a temporary
+SQLite database. To run it locally, provide the executable and run
+`STATLITE_BIN=/path/to/statlite mvn -Pslow-tests verify`. The regular Maven suite
+does not require StatLite; CI provisions it only for the slow-tests job.
 
 ## Other monitoring integrations
 

@@ -50,6 +50,7 @@ public abstract class CoilBaseJexApplication {
     private DataSource dataSource;
     private RepositoryContext db;
     private boolean monitoringEnabled;
+    JexMonitoring monitoring;
     private boolean staticResourcesEnabled;
 
     /** Enables process-local StatLite metrics. Call before starting the application. */
@@ -136,9 +137,8 @@ public abstract class CoilBaseJexApplication {
     private void configureMonitoringIfEnabled(Jex jex) {
         // Keep StatLiteMetrics initialization behind the opt-in: disabled applications
         // should not need to load it, and monitoring may become an optional module.
-        JexMonitoring monitoring = null;
         if (monitoringEnabled) {
-            monitoring = new JexMonitoring();
+            monitoring = new JexMonitoring(dataSource);
             monitoring.install(jex);
         }
         installDefaultErrorHandling(jex);
@@ -227,7 +227,9 @@ public abstract class CoilBaseJexApplication {
     private record ErrorResponse(int status, String code) {}
 
     private void closeOwnedResources() {
-        if (!closed.compareAndSet(false, true) || dataSource == null) return;
+        if (!closed.compareAndSet(false, true)) return;
+        if (monitoring != null) monitoring.close();
+        if (dataSource == null) return;
         try {
             if (dataSource instanceof AutoCloseable closeable) {
                 closeable.close();

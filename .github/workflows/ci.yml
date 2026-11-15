@@ -11,6 +11,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Install StatLite for the smoke test
+        run: |
+          curl -fsSL https://github.com/PVRLabs/statlite/releases/download/v0.7.2/statlite_0.7.2_linux_amd64.tar.gz -o "$RUNNER_TEMP/statlite.tar.gz"
+          echo 'a426e562b39df9ce38b24e9f8e24094eb9ec1560fa862142d9f766cd13ad50fe  '"$RUNNER_TEMP/statlite.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/statlite.tar.gz" -C "$RUNNER_TEMP" statlite
+          echo "STATLITE_BIN=$RUNNER_TEMP/statlite" >> "$GITHUB_ENV"
       - run: mvn -B -Pslow-tests verify
   core-java17:
     runs-on: ubuntu-latest

@@ -7,6 +7,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -94,5 +103,71 @@ class MonitoringIT {
         assertEquals(1, metrics.path("requests_total").asInt());
         assertEquals(1, metrics.path("responses_4xx_total").asInt());
         assertEquals(0, metrics.path("responses_404_total").asInt());
+    }
+
+    @Test void primaryDatabaseHealthIsCachedAndRecovers() throws Exception {
+        var h2 = new JdbcDataSource();
+        h2.setURL("jdbc:h2:mem:monitoring;DB_CLOSE_DELAY=-1");
+        var available = new AtomicBoolean(true);
+        var connections = new AtomicInteger();
+        var initialCheck = new CountDownLatch(1);
+        var source = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{DataSource.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getConnection")) {
+                        connections.incrementAndGet();
+                        initialCheck.countDown();
+                        if (!available.get()) throw new SQLException("database unavailable");
+                    }
+                    try { return method.invoke(h2, args); }
+                    catch (InvocationTargetException e) { throw e.getCause(); }
+                });
+        var app = new App() {
+            @Override protected DataSource createPrimaryDataSource() { return source; }
+        };
+        server = app.enableMonitoring().start(0);
+        assertTrue(initialCheck.await(5, TimeUnit.SECONDS));
+        app.monitoring.refreshDatabaseHealth();
+        assertEquals("UP", mapper.readTree(get("/statlite/metrics").body()).path("database_status").asText());
+        int checked = connections.get();
+        available.set(false);
+        assertEquals("UP", mapper.readTree(get("/statlite/metrics").body()).path("database_status").asText());
+        assertEquals(checked, connections.get());
+        app.monitoring.refreshDatabaseHealth();
+        var down = mapper.readTree(get("/statlite/metrics").body());
+        assertEquals("DOWN", down.path("database_status").asText());
+        assertEquals("UP", down.path("status").asText());
+        available.set(true);
+        app.monitoring.refreshDatabaseHealth();
+        assertEquals("UP", mapper.readTree(get("/statlite/metrics").body()).path("database_status").asText());
+    }
+
+    @Test void omitsDatabaseStatusUntilInitialCheckCompletes() throws Exception {
+        var h2 = new JdbcDataSource();
+        h2.setURL("jdbc:h2:mem:monitoring_initial;DB_CLOSE_DELAY=-1");
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var source = (DataSource) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{DataSource.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getConnection")) {
+                        entered.countDown();
+                        if (!release.await(5, TimeUnit.SECONDS)) throw new SQLException("check timed out");
+                    }
+                    try { return method.invoke(h2, args); }
+                    catch (InvocationTargetException e) { throw e.getCause(); }
+                });
+        var app = new App() {
+            @Override protected DataSource createPrimaryDataSource() { return source; }
+        };
+        try {
+            server = app.enableMonitoring().start(0);
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            var body = mapper.readTree(get("/statlite/metrics").body());
+            assertFalse(body.has("database_status"));
+            assertEquals("UP", body.path("status").asText());
+        } finally {
+            release.countDown();
+        }
+        app.monitoring.refreshDatabaseHealth();
+        assertEquals("UP", mapper.readTree(get("/statlite/metrics").body()).path("database_status").asText());
     }
 }

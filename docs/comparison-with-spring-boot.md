@@ -116,7 +116,7 @@ unsupported.
 
 Other gaps are preview scope, not a permanent refusal. Integrated authentication and authorization are outside the initial
 release; suitable libraries are still under evaluation. Observability is experimental StatLite: basic request and JVM
-counters, plus an explicit database probe. See [StatLite monitoring](statlite-monitoring.md).
+counters, plus automatic primary database health for Jex applications. See [StatLite monitoring](statlite-monitoring.md).
 
 Versioned migrations are a separate choice. They stay with Flyway or Liquibase. Script helpers run SQL only when the
 application calls them. See [Database configuration](database-configuration.md).

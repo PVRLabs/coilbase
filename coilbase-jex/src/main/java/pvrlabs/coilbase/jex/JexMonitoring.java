@@ -4,11 +4,38 @@ import io.avaje.jex.Jex;
 import io.avaje.jex.http.ExceptionHandler;
 import io.avaje.jex.http.NotFoundException;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
+import org.jdbi.v3.core.Jdbi;
+import pvrlabs.coilbase.monitoring.DatabaseHealth;
 import pvrlabs.coilbase.monitoring.StatLiteMetrics;
 
 final class JexMonitoring {
     private static final String MONITORED_REQUEST = CoilBaseJexApplication.class.getName() + ".monitored";
     private final StatLiteMetrics metrics = new StatLiteMetrics();
+    private final Jdbi database;
+    private final ScheduledExecutorService checks;
+    private volatile String databaseStatus;
+
+    JexMonitoring(DataSource source) {
+        database = source == null ? null : Jdbi.create(source);
+        checks = source == null ? null : Executors.newSingleThreadScheduledExecutor(r -> {
+            var thread = new Thread(r, "coilbase-database-health");
+            thread.setDaemon(true);
+            return thread;
+        });
+        if (checks != null) checks.scheduleWithFixedDelay(this::refreshDatabaseHealth, 0, 60, TimeUnit.SECONDS);
+    }
+
+    synchronized void refreshDatabaseHealth() {
+        if (database != null) databaseStatus = DatabaseHealth.check(database, 2).healthy() ? "UP" : "DOWN";
+    }
+
+    void close() {
+        if (checks != null) checks.shutdownNow();
+    }
 
     void install(Jex jex) {
         jex.filter((ctx, chain) -> {
@@ -23,7 +50,7 @@ final class JexMonitoring {
         });
         jex.get(StatLiteMetrics.PATH, ctx -> {
             ctx.header("Cache-Control", "no-store");
-            ctx.json(metrics.snapshot("UP", null));
+            ctx.json(metrics.snapshot("UP", databaseStatus));
         });
     }
 
