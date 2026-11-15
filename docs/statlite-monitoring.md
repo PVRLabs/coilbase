@@ -1,23 +1,15 @@
 # StatLite Monitoring
 
-A running service benefits from basic production visibility: how much traffic it
-serves, how fast requests are answered, how many errors occur, how JVM heap and
-uptime develop, and whether the application is up at all. A monitoring tool
-polls this data from the application, stores it over time, and turns it into
-trends, so degradation is visible before or while users notice it.
+CoilBase Jex applications can expose basic monitoring with a single
+`enableMonitoring()` call. The endpoint reports:
 
-Spring Boot answers this with Actuator: production endpoints such as
-`/actuator/health` and `/actuator/metrics`, dependency health indicators, and
-JVM and HTTP metrics out of the box. Actuator already provides substantial
-visibility on its own, but it reports current state; collecting, storing, and
-charting these measurements over time requires a separate monitoring backend
-such as Prometheus and Grafana, which adds operational components to run.
+- HTTP request and error counts and request duration.
+- JVM heap usage and uptime.
+- Automatic primary database health as `UP` or `DOWN`, when a primary
+  datasource is configured.
 
-CoilBase targets smaller deployments where the Spring runtime, and a monitoring
-backend of that scale, are more than the application needs. What it provides
-right now is deliberately modest: an opt-in integration reporting basic
-application and JVM metrics, with an optional database health sampler. It is an alternative at this scale, not a replacement
-for Spring Boot Actuator.
+No separate database-health configuration is needed. Monitoring is opt-in and
+the database status is omitted when the application has no primary datasource.
 
 [StatLite](https://github.com/PVRLabs/statlite) is the lightweight backend this
 integration feeds: a self-hosted single Go binary with embedded SQLite storage
@@ -66,13 +58,14 @@ handlers and mappings remain in effect. Unmatched routes return 404 by default;
 applications can override this with their own error mappings. Monitoring records
 the actual response status, whichever mapping the application chooses.
 
-When a primary datasource is configured, monitoring also reports `database_status`.
-A background check runs initially and then 60 seconds after each completed check;
-scrapes use the cached result. The field is omitted until the first check completes;
-failures report `DOWN` until a later check succeeds. Application status remains
-independent. Without a primary datasource the field is omitted. The sampler stops
-on shutdown; a JDBC driver that ignores interruption may take longer to finish an
-in-progress connection or query.
+The example above does not configure a primary datasource, so its response omits
+`database_status`. When a primary datasource is configured, monitoring reports
+its health automatically, with no additional configuration. A background check
+runs initially and then 60 seconds after each completed check; scrapes use the
+cached result. The field is omitted until the first check completes; failures
+report `DOWN` until a later check succeeds. Application status remains independent.
+The sampler stops on shutdown; a JDBC driver that ignores interruption may take
+longer to finish an in-progress connection or query.
 
 The two-second SQL query timeout does not bound connection acquisition. Configure
 the datasource pool and JDBC driver connection timeouts for your deployment; for
@@ -136,10 +129,12 @@ changing that identity. Use an authoritative, inexpensive application status
 in place of the example's constant `UP`; it is not proof of dependency health.
 The null second argument in the manual example omits database status.
 
-## Explicit database health check
+## Manual database health checks for Core and other integrations
 
 `pvrlabs.coilbase.monitoring.DatabaseHealth` provides an independent, explicit
-probe. For example, with an existing Jdbi instance:
+probe for Core and other integrations. CoilBase Jex applications using
+`enableMonitoring()` do not need to wire this probe. For example, with an
+existing Jdbi instance:
 
 ```java
 import pvrlabs.coilbase.monitoring.DatabaseHealth;

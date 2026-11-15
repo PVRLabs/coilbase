@@ -123,11 +123,6 @@ with HikariCP, schema scripts and datasource ownership.
 See [Application configuration](docs/application-configuration.md) for work-in-progress
 guidance on plain Java configuration and testability.
 
-## Monitoring (work in progress)
-
-Optional [StatLite monitoring](docs/statlite-monitoring.md) provides basic
-application and JVM metrics for CoilBase applications.
-
 ## Modules
 
 | Artifact (group `xyz.pvrlabs`) | Runtime | Contents |
@@ -178,6 +173,11 @@ host's native APIs. Plain Jdbi remains a good choice when these conventions add 
 For standalone consumer and parent-POM resolution checks, see
 [consumer verification](verification/README.md). Maven distribution includes the
 parent POM and both modules; applications depend only on the modules they need.
+
+## Monitoring
+
+Optional [StatLite monitoring](docs/statlite-monitoring.md) provides HTTP and JVM
+metrics, plus automatic primary database health for Jex applications.
 
 ## Development
 
