@@ -82,3 +82,16 @@ hosting directory and publication state.
 - All seven public artifacts and their SHA-256 checksum files matched the release
   digests. Core and Jex standalone consumers passed against
   `https://pvrlabs.github.io/maven/` using separate fresh Maven caches.
+
+## Preview5 publication record — 2026-11-15
+
+- [GitHub prerelease](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview5)
+  and [merged pointer submission](https://github.com/PVRLabs/maven-repo/pull/6).
+- Release source: `9783810323290707be91a7f46a4662f4f657b6ac`.
+- Publication audit: `PVRLabs/maven-repo` commit `7baaeab`.
+- Hosted Maven files: `PVRLabs/pvrlabs.github.io` commit `0746c91`.
+- All seven public artifacts and their SHA-256 checksum files matched the release
+  digests. Core and Jex standalone consumers passed against the public Maven
+  repository using separate fresh caches, including parent POM resolution.
+- The regular build, Hello example, metrics fixture, staged consumer checks and
+  StatLite slow suite passed before publication.
