@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-preview5](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview5) — 2026-11-15
+
+### Added
+
+- Jex monitoring automatically reports cached primary datasource health when a
+  datasource is configured, independently of application status.
+- An optional slow integration test verifies collection and health reporting
+  through a running StatLite instance.
+
+### Changed
+
+- Improved deployment and monitoring documentation and packaged the Hello
+  application as a runnable distribution.
+
 ## [0.1.0-preview4](https://github.com/PVRLabs/coilbase/releases/tag/0.1.0-preview4) — 2026-11-09
 
 ### Added

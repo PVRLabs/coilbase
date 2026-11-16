@@ -1,13 +1,13 @@
-# 0.1.0-preview4
+# 0.1.0-preview5
 
-This preview adds opt-in static resource serving to the Jex integration.
+This preview adds automatic primary database health to opt-in Jex monitoring.
 
-- Call `CoilBaseJexApplication.enableStaticResources()` to serve classpath
-  `/static/` at the HTTP root. Static serving is disabled by default.
-- The Hello example demonstrates static resources, and the native-image smoke
-  workflow exercises the example on GraalVM.
-- New documentation covers migration from Spring Boot and compares the two
-  approaches.
+- `enableMonitoring()` reports cached primary database health as `UP` or `DOWN`
+  when a datasource is configured, alongside HTTP and JVM metrics. Health is
+  omitted until the first check completes and when no datasource is configured.
+- An optional slow test verifies collection by a running StatLite instance.
+- The Hello example includes a runnable distribution, with updated deployment
+  and monitoring documentation.
 
 See [the release procedure](docs/releasing.md) for artifact publication steps.
 
