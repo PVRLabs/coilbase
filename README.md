@@ -76,7 +76,8 @@ For a smaller starting point, see [Hello CoilBase](examples/hello-coilbase).
 
 ## Installation
 
-Preview artifacts are hosted in the PVR Labs Maven repository, not Maven Central.
+Preview artifacts are hosted in the public PVR Labs Maven repository on GitHub,
+not Maven Central.
 See [repository options](docs/deployment.md#maven-repository-access) for restricted environments.
 
 Add the PVR Labs Maven repository to your project's `pom.xml`:
