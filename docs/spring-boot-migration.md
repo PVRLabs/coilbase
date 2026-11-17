@@ -1,6 +1,6 @@
 # Migrate a Spring Boot JDBC application to CoilBase and Jex
 
-This guide shows how to migrate a Spring MVC and JDBC application to CoilBase with Avaje Jex while preserving its HTTP and database behavior. It uses CoilBase Preview 4. The examples are drawn from a quote-ingestion service and a portfolio application with holdings, valuation, and transactional edits.
+This guide shows how to migrate a Spring MVC and JDBC application to CoilBase with Avaje Jex while preserving its HTTP and database behavior. It uses CoilBase Preview 5. The examples are drawn from a quote-ingestion service and a portfolio application with holdings, valuation, and transactional edits.
 
 Start with the [CoilBase installation instructions](../README.md#installation) and the [Spring Boot comparison](comparison-with-spring-boot.md).
 
@@ -34,17 +34,22 @@ Spring can discover components and inject their constructors. With CoilBase, con
 ```java
 @Override
 protected void registerRoutes(Jex jex) {
-    db().executeScriptResource("/schema.sql");
+    PortfolioInitializer.initialize(
+            db(), Integer.parseInt(env("PORTFOLIO_SEED_USERS", "1000")));
     var quotes = new QuoteRepository(db());
     var portfolios = new PortfolioRepository(db());
-    new PortfolioInitializer(portfolios, db(), config.seedUsers()).initialize();
-    var service = new PortfolioService(db(), portfolios);
-    new PortfolioController(service).register(jex);
-    new ReadinessController(new ReadinessService(portfolios, quotes)).register(jex);
+    var readiness = new ReadinessService(portfolios, quotes);
+    var service = new PortfolioService(portfolios, db());
+    jex.routing(new PortfolioController$Route(new PortfolioController(service, quotes)));
+    jex.routing(new HealthController$Route(new HealthController(readiness, healthDatabase)));
 }
 ```
 
-This excerpt leaves out quote routes and scheduler setup. Controllers remain responsible for HTTP, services for domain operations, and repositories for SQL. Avaje HTTP generated route adapters are another option: register the generated adapter with `jex.routing(...)` as in the quote application.
+The initializer creates the schema and seeds it when needed. This excerpt omits
+scheduler setup; `env` reads an environment variable with a fallback, and
+`healthDatabase` is the application's Jdbi probe instance backed by its primary
+pool. Avaje HTTP generates the `$Route` adapters during compilation. Controllers
+handle HTTP, services handle domain operations, and repositories handle SQL.
 
 ## Migrate JDBC repositories
 
@@ -103,6 +108,21 @@ Nested operations join the existing transaction when they use the same `Reposito
 
 ## Exception handling and Problem Details
 
+For ordinary error mapping, use `CoilBaseJexApplication.mapError`:
+
+```java
+@Override
+protected void configureErrorHandling() {
+    mapError(InvalidHoldingException.class, 400, "invalid_holding");
+    mapError(UserNotFoundException.class, 404, "user_not_found");
+    mapError(MarketPricesUnavailableException.class, 503, "market_prices_unavailable");
+}
+```
+
+These mappings return `application/json` with an `error` code. Malformed JSON and
+unexpected failures already have safe default handling. Use a custom handler only
+when clients require a different response contract, such as Problem Details.
+
 Spring MVC can map a domain exception to a `ProblemDetail` response and select `application/problem+json`:
 
 ```java
@@ -112,7 +132,8 @@ ProblemDetail userNotFound(UserNotFoundException exception) {
 }
 ```
 
-With Jex, register the handler and write the response explicitly. Keep the helper in the application:
+To preserve that Problem Details contract with Jex, register a custom handler
+and write the response explicitly:
 
 ```java
 @Override
@@ -139,15 +160,24 @@ In Jex 3.6, `ctx.json()` selects `application/json` and writes the response. Set
 
 ## Preserve configuration and lifecycle
 
-Replace Spring property binding with application-owned configuration appropriate to your deployment. Preserve environment names, defaults and validation rules that operators already use. For example, Portfolio retains `SERVER_PORT`, falls back to CoilBase's `PORT` convention and then uses 8080:
+Replace Spring property binding with application-owned configuration appropriate to your deployment. Preserve environment names, defaults and validation rules that operators already use. For example, Portfolio reads `SERVER_PORT`, defaulting to 8080:
 
 ```java
-String port = System.getenv("SERVER_PORT");
-if (port == null) port = System.getenv("PORT");
-app.run(port == null || port.isBlank() ? 8080 : Integer.parseInt(port));
+app.start(Integer.parseInt(env("SERVER_PORT", "8080")));
 ```
 
 This example reads environment variables; it does not reproduce Spring's complete property-source precedence. Check database URL options, credentials, pool settings and timezone explicitly. Start background work only when the application is ready to run, stop it on shutdown, and close the server if post-start initialization fails. Decide how initialization and readiness report database failures.
+
+## Health checks and optional monitoring
+
+When migrating from Spring Boot, retain any health checks your deployment relies on.
+
+CoilBase provides `DatabaseHealth` for checking database connectivity. Application
+readiness is separate: check any additional requirements, such as initialized data
+or available market prices.
+
+For optional metrics and automatic database-health reporting with Avaje Jex, call
+`enableMonitoring()`. See [StatLite monitoring](statlite-monitoring.md) for details.
 
 ## Enable static resources when needed
 
