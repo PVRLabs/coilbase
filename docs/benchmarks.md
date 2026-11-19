@@ -93,6 +93,17 @@ minimum memory requirements. The experiment's evidence and reproduction guide
 record the configuration, paging and other limitations. These results are not
 directly comparable with the 512 MiB MariaDB studies above.
 
+## PetClinic and AOT caching
+
+In a separate PetClinic experiment, Spring Boot's combined Spring AOT and JDK
+cache reduced median database-backed readiness from 24.53 to 6.98 seconds
+(71.6%) and quiet RSS from 286.54 to 247.65 MiB (13.6%). CoilBase's JDK cache
+reduced readiness from 4.00 to 2.04 seconds (48.9%) and RSS from 130.44 to
+112.84 MiB (13.5%). These are medians from three launches per configuration.
+Training, assembly, deployment and compatibility validation add work, so we
+prefer conventional HotSpot for its simpler workflow. The [PetClinic AOT article](https://github.com/ejboy/coilbase-petclinic/blob/main/docs/aot-experiment.md)
+has the ranges, conditions and rationale.
+
 ## Sources and future updates
 
 S comprises two accepted HotSpot runs per stack on October 30 and two native
